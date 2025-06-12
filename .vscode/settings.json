@@ -1,0 +1,8 @@
+{
+  "typescript.preferences.includePackageJsonAutoImports": "off",
+  "typescript.suggest.autoImports": false,
+  "typescript.preferences.includeLibrarySpecifiedByCompilerOptions": true,
+  "css.validate": false,
+  "scss.validate": false,
+  "less.validate": false
+}

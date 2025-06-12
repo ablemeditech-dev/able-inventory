@@ -19,3 +19,19 @@ body {
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* 모바일 환경에서 상단 영역까지 완전히 커버 */
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  /* 모바일 노치 영역까지 앱이 확장되도록 */
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Safe area 지원 */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .pt-safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+}
