@@ -147,7 +147,7 @@ export default function ManualInboundPage() {
 
       // 성공 시 입고관리 페이지로 이동
       router.push("/inbound");
-    } catch (_err) {
+    } catch (err) {
       setError("입고 정보를 불러오는데 실패했습니다. 다시 시도해주세요.");
     } finally {
       setLoading(false);

@@ -36,7 +36,7 @@ export default function InventoryPage() {
       }
 
       setHospitals(hospitalData || []);
-    } catch (err) {
+    } catch {
       // 에러가 발생해도 계속 진행 (빈 배열로 설정)
       setHospitals([]);
     } finally {

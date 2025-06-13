@@ -115,8 +115,8 @@ export default function ClosingPage() {
       // 날짜별, 병원별로 그룹핑
       const grouped = groupUsedRecords(enrichedMovements);
       setUsedRecords(grouped);
-    } catch (error) {
-      console.error("사용 기록 조회 실패:", error);
+    } catch {
+      // 사용하지 않는 변수, 파라미터, 상수 삭제
     } finally {
       setLoading(false);
     }

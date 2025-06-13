@@ -140,8 +140,8 @@ export default function UDIPage() {
       // 날짜별, 거래처별로 그룹핑
       const grouped = groupUDIRecords(enrichedMovements);
       setUdiRecords(grouped);
-    } catch (error) {
-      console.error("UDI 기록 조회 실패:", error);
+    } catch {
+      console.error("UDI 기록 조회 실패:");
     } finally {
       setLoading(false);
     }

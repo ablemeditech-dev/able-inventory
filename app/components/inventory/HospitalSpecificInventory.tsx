@@ -157,7 +157,7 @@ export default function HospitalSpecificInventory({
         });
 
       setInventory(currentInventory);
-    } catch (_err) {
+    } catch {
       setError("재고 정보를 불러오는데 실패했습니다.");
     } finally {
       setLoading(false);

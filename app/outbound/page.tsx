@@ -139,8 +139,8 @@ export default function OutboundPage() {
       // 날짜별, 거래처별로 그룹핑
       const grouped = groupOutboundRecords(enrichedMovements);
       setOutboundRecords(grouped);
-    } catch (error) {
-      console.error("출고 기록 조회 실패:", error);
+    } catch {
+      console.error("출고 기록 조회 실패:");
     } finally {
       setLoading(false);
     }

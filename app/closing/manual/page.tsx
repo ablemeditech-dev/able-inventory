@@ -76,7 +76,7 @@ export default function ManualUsedPage() {
       }
 
       setHospitals(data || []);
-    } catch (_err) {
+    } catch {
       setError("병원 목록을 불러오는데 실패했습니다. 다시 시도해주세요.");
     } finally {
       setHospitalsLoading(false);
@@ -171,7 +171,7 @@ export default function ManualUsedPage() {
       // CFN 순으로 정렬
       availableStockArray.sort((a, b) => a.cfn.localeCompare(b.cfn));
       setAvailableStock(availableStockArray);
-    } catch (_err) {
+    } catch {
       setError("재고 정보를 불러오는데 실패했습니다. 다시 시도해주세요.");
     } finally {
       setStockLoading(false);
@@ -262,7 +262,7 @@ export default function ManualUsedPage() {
       });
 
       setAvailableLots(availableLotsArray);
-    } catch (err) {
+    } catch {
       setError("LOT 정보를 불러오는데 실패했습니다.");
     } finally {
       setLotsLoading(false);
@@ -359,7 +359,7 @@ export default function ManualUsedPage() {
       setTimeout(() => {
         router.push("/closing");
       }, 1500);
-    } catch (err: any) {
+    } catch {
       setError("사용 기록 등록에 실패했습니다. 다시 시도해주세요.");
     } finally {
       setLoading(false);

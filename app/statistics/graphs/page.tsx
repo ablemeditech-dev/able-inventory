@@ -91,8 +91,8 @@ export default function StatisticsGraphsPage() {
         locationMap
       );
       setData(graphData);
-    } catch (error) {
-      console.error("그래프 데이터 조회 실패:", error);
+    } catch {
+      console.error("그래프 데이터 조회 실패:");
     } finally {
       setLoading(false);
     }
