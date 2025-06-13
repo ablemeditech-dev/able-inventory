@@ -31,9 +31,121 @@ export default function StatisticsGraphsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedGraph, setSelectedGraph] = useState<string>("monthly");
 
-  useEffect(() => {
-    fetchGraphData();
-  }, [fetchGraphData]);
+  const calculateGraphData = (
+    movements: StockMovement[],
+    productMap: Map<string, Product>,
+    locationMap: Map<string, Partial<Location>>
+  ): GraphData => {
+    const monthlyData = new Map<
+      string,
+      { inbound: number; outbound: number; usage: number }
+    >();
+    const hospitalUsage = new Map<string, number>();
+    const cfnStock = new Map<string, number>();
+    const cfnUsage = new Map<string, number>();
+
+    movements.forEach((movement) => {
+      const product = productMap.get(movement.product_id);
+      const cfn = product?.cfn || "알 수 없음";
+      const quantity = movement.quantity || 0;
+
+      // 월별 데이터
+      const dateValue =
+        movement.inbound_date ||
+        movement.created_at ||
+        new Date().toISOString();
+      const date = new Date(dateValue);
+      const monthKey = `${date.getFullYear()}-${String(
+        date.getMonth() + 1
+      ).padStart(2, "0")}`;
+
+      if (!monthlyData.has(monthKey)) {
+        monthlyData.set(monthKey, { inbound: 0, outbound: 0, usage: 0 });
+      }
+      const monthData = monthlyData.get(monthKey)!;
+
+      // CFN별 재고
+      cfnStock.set(
+        cfn,
+        (cfnStock.get(cfn) || 0) +
+          (movement.movement_type === "in" ? quantity : -quantity)
+      );
+
+      if (movement.movement_type === "in") {
+        monthData.inbound += quantity;
+      } else if (movement.movement_type === "out") {
+        if (movement.movement_reason === "sale") {
+          monthData.outbound += quantity;
+        } else if (movement.movement_reason === "usage") {
+          monthData.usage += quantity;
+
+          // 병원별 사용량
+          const hospitalId = movement.from_location_id;
+          const hospital = hospitalId ? locationMap.get(hospitalId) : null;
+          const hospitalName = hospital?.location_name || "알 수 없음";
+          hospitalUsage.set(
+            hospitalName,
+            (hospitalUsage.get(hospitalName) || 0) + quantity
+          );
+
+          // CFN별 사용량
+          cfnUsage.set(cfn, (cfnUsage.get(cfn) || 0) + quantity);
+        }
+      }
+    });
+
+    return {
+      monthlyTrends: Array.from(monthlyData.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([month, data]) => {
+          const monthStr = month as string;
+          const [year, monthNum] = monthStr.split("-");
+          const monthNames = [
+            "1월",
+            "2월",
+            "3월",
+            "4월",
+            "5월",
+            "6월",
+            "7월",
+            "8월",
+            "9월",
+            "10월",
+            "11월",
+            "12월",
+          ];
+          const displayMonth = monthNames[parseInt(monthNum) - 1] || "1월";
+          const displayYear = year ? year.slice(-2) : "70";
+
+          return {
+            month: `${displayMonth} ${displayYear}`,
+            ...data,
+          };
+        }),
+      hospitalStats: Array.from(hospitalUsage.entries())
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 8)
+        .map(([hospitalName, totalUsage]) => ({
+          hospitalName,
+          totalUsage,
+        })),
+      cfnStats: Array.from(cfnStock.entries())
+        .filter(([, quantity]) => quantity >= 6)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 10)
+        .map(([cfn, totalQuantity]) => ({
+          cfn,
+          totalQuantity,
+        })),
+      topCFNs: Array.from(cfnUsage.entries())
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 10)
+        .map(([cfn, usageCount]) => ({
+          cfn,
+          usageCount,
+        })),
+    };
+  };
 
   const fetchGraphData = async () => {
     try {
@@ -83,7 +195,9 @@ export default function StatisticsGraphsPage() {
 
       // 데이터 매핑
       const productMap = new Map(products?.map((p) => [p.id, p]) || []);
-      const locationMap = new Map(locations?.map((l) => [l.id, l]) || []);
+      const locationMap = new Map<string, Partial<Location>>(
+        locations?.map((l) => [l.id, l]) || []
+      );
 
       const graphData = calculateGraphData(
         movements || [],
@@ -98,99 +212,9 @@ export default function StatisticsGraphsPage() {
     }
   };
 
-  const calculateGraphData = (
-    movements: StockMovement[],
-    productMap: Map<string, Product>,
-    locationMap: Map<string, Location>
-  ): GraphData => {
-    const monthlyData = new Map<
-      string,
-      { inbound: number; outbound: number; usage: number }
-    >();
-    const hospitalUsage = new Map<string, number>();
-    const cfnStock = new Map<string, number>();
-    const cfnUsage = new Map<string, number>();
-
-    movements.forEach((movement) => {
-      const product = productMap.get(movement.product_id);
-      const cfn = product?.cfn || "알 수 없음";
-      const quantity = movement.quantity || 0;
-
-      // 월별 데이터
-      const date = new Date(movement.inbound_date || movement.created_at);
-      const monthKey = `${date.getFullYear()}-${String(
-        date.getMonth() + 1
-      ).padStart(2, "0")}`;
-
-      if (!monthlyData.has(monthKey)) {
-        monthlyData.set(monthKey, { inbound: 0, outbound: 0, usage: 0 });
-      }
-      const monthData = monthlyData.get(monthKey)!;
-
-      // CFN별 재고
-      cfnStock.set(
-        cfn,
-        (cfnStock.get(cfn) || 0) +
-          (movement.movement_type === "in" ? quantity : -quantity)
-      );
-
-      if (movement.movement_type === "in") {
-        monthData.inbound += quantity;
-      } else if (movement.movement_type === "out") {
-        if (movement.movement_reason === "sale") {
-          monthData.outbound += quantity;
-        } else if (movement.movement_reason === "usage") {
-          monthData.usage += quantity;
-
-          // 병원별 사용량
-          const hospitalId = movement.from_location_id;
-          const hospital = hospitalId ? locationMap.get(hospitalId) : null;
-          const hospitalName = hospital?.location_name || "알 수 없음";
-          hospitalUsage.set(
-            hospitalName,
-            (hospitalUsage.get(hospitalName) || 0) + quantity
-          );
-
-          // CFN별 사용량
-          cfnUsage.set(cfn, (cfnUsage.get(cfn) || 0) + quantity);
-        }
-      }
-    });
-
-    return {
-      monthlyTrends: Array.from(monthlyData.entries())
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([month, data]) => ({
-          month: new Date(month + "-01").toLocaleDateString("ko-KR", {
-            month: "short",
-            year: "2-digit",
-          }),
-          ...data,
-        })),
-      hospitalStats: Array.from(hospitalUsage.entries())
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 8)
-        .map(([hospitalName, totalUsage]) => ({
-          hospitalName,
-          totalUsage,
-        })),
-      cfnStats: Array.from(cfnStock.entries())
-        .filter(([, quantity]) => quantity >= 6)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 10)
-        .map(([cfn, totalQuantity]) => ({
-          cfn,
-          totalQuantity,
-        })),
-      topCFNs: Array.from(cfnUsage.entries())
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 10)
-        .map(([cfn, usageCount]) => ({
-          cfn,
-          usageCount,
-        })),
-    };
-  };
+  useEffect(() => {
+    fetchGraphData();
+  }, []);
 
   const renderBarChart = (
     data: any[],

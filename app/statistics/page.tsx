@@ -41,10 +41,6 @@ export default function StatisticsPage() {
   const [statistics, setStatistics] = useState<StatisticsData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchStatistics();
-  }, [fetchStatistics]);
-
   const fetchStatistics = async () => {
     try {
       setLoading(true);
@@ -108,6 +104,10 @@ export default function StatisticsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchStatistics();
+  }, [fetchStatistics]);
 
   const calculateStatistics = (
     movements: any[],

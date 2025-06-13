@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase, clientsAPI } from "../../../../lib/supabase";
@@ -10,7 +10,7 @@ interface Client {
   company_name: string;
 }
 
-export default function AddProductPage() {
+function AddProductForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -260,5 +260,13 @@ export default function AddProductPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function AddProductPage() {
+  return (
+    <Suspense fallback={<div>로딩 중...</div>}>
+      <AddProductForm />
+    </Suspense>
   );
 }
