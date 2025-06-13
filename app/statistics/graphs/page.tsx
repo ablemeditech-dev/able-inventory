@@ -33,7 +33,7 @@ export default function StatisticsGraphsPage() {
 
   useEffect(() => {
     fetchGraphData();
-  }, []);
+  }, [fetchGraphData]);
 
   const fetchGraphData = async () => {
     try {

@@ -112,7 +112,9 @@ export default function ScanInboundPage() {
   }, [activeTab, isScanning]);
 
   // UPN으로 products 테이블에서 CFN과 client 정보 조회
-  const enrichWithProductData = async (parsedItems: any[]) => {
+  const enrichWithProductData = async (
+    parsedItems: Record<string, unknown>[]
+  ) => {
     const upns = parsedItems.map((item) => item.upn);
 
     try {

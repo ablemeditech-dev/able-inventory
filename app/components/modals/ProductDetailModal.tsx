@@ -101,7 +101,7 @@ export default function ProductDetailModal({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-accent-soft">
-              {products.map((product, index) => (
+              {products.map((product) => (
                 <tr key={product.id} className="hover:bg-accent-light">
                   <td className="px-4 py-3">
                     <span className="text-primary font-medium">

@@ -43,7 +43,7 @@ export default function StatisticsPage() {
 
   useEffect(() => {
     fetchStatistics();
-  }, []);
+  }, [fetchStatistics]);
 
   const fetchStatistics = async () => {
     try {
