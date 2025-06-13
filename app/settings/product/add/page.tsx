@@ -150,7 +150,7 @@ function AddProductForm() {
                 name="client_id"
                 value={formData.client_id}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary bg-white appearance-none"
+                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary bg-white appearance-none text-gray-900"
                 required
               >
                 <option value="">거래처를 선택하세요</option>
@@ -173,7 +173,7 @@ function AddProductForm() {
               name="cfn"
               value={formData.cfn}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
               placeholder="제품명을 입력하세요"
               required
             />
@@ -189,7 +189,7 @@ function AddProductForm() {
               name="upn"
               value={formData.upn}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
               placeholder="UDI를 입력하세요"
               required
             />
@@ -205,7 +205,7 @@ function AddProductForm() {
               name="category"
               value={formData.category}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
               placeholder="제품 카테고리를 입력하세요"
             />
           </div>
@@ -219,7 +219,7 @@ function AddProductForm() {
               name="unit"
               value={formData.unit}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary bg-white appearance-none"
+              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary bg-white appearance-none text-gray-900"
             >
               <option value="EA">EA</option>
               <option value="BOX">BOX</option>
@@ -237,7 +237,7 @@ function AddProductForm() {
               value={formData.description}
               onChange={handleChange}
               rows={3}
-              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
               placeholder="제품에 대한 상세 설명을 입력하세요"
             />
           </div>

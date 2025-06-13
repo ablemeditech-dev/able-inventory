@@ -67,7 +67,7 @@ function InboundDateModal({
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+            className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
           />
         </div>
 
@@ -558,7 +558,7 @@ export default function ScanInboundPage() {
                         value={currentInput}
                         onChange={(e) => setCurrentInput(e.target.value)}
                         onKeyDown={handleScanInput}
-                        className="w-full px-4 py-3 border-2 border-primary rounded-lg focus:outline-none focus:border-accent-soft font-mono text-lg"
+                        className="w-full px-4 py-3 border-2 border-primary rounded-lg focus:outline-none focus:border-accent-soft font-mono text-lg text-gray-900"
                         placeholder="스캔된 데이터가 여기에 표시됩니다..."
                         autoComplete="off"
                       />
@@ -733,7 +733,7 @@ export default function ScanInboundPage() {
                 value={pasteText}
                 onChange={(e) => setPasteText(e.target.value)}
                 rows={8}
-                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary font-mono text-sm"
+                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary font-mono text-sm text-gray-900"
                 style={{ fontSize: "16px" }}
                 placeholder="스캔한 바코드 데이터를 여기에 붙여넣으세요"
               />

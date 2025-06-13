@@ -167,7 +167,7 @@ export default function ProductEditPage() {
                   value={formData.cfn}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-3 border border-accent-soft rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white"
+                  className="w-full px-4 py-3 border border-accent-soft rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white text-gray-900"
                 />
               </div>
               <div>
@@ -180,7 +180,7 @@ export default function ProductEditPage() {
                   value={formData.upn}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-3 border border-accent-soft rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white"
+                  className="w-full px-4 py-3 border border-accent-soft rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white text-gray-900"
                 />
               </div>
             </div>
@@ -197,7 +197,7 @@ export default function ProductEditPage() {
                 value={formData.description}
                 onChange={handleInputChange}
                 rows={3}
-                className="w-full px-4 py-3 border border-accent-soft rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white"
+                className="w-full px-4 py-3 border border-accent-soft rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white text-gray-900"
                 placeholder="제품에 대한 설명을 입력하세요"
               />
             </div>{" "}
@@ -211,7 +211,7 @@ export default function ProductEditPage() {
                   name="category"
                   value={formData.category}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-accent-soft rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white"
+                  className="w-full px-4 py-3 border border-accent-soft rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white text-gray-900"
                   placeholder="제품 카테고리"
                 />
               </div>
@@ -225,7 +225,7 @@ export default function ProductEditPage() {
                   value={formData.unit}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-3 border border-accent-soft rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white"
+                  className="w-full px-4 py-3 border border-accent-soft rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white text-gray-900"
                   placeholder="개, 박스, kg 등"
                 />
               </div>

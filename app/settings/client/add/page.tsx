@@ -85,7 +85,7 @@ export default function AddClientPage() {
               name="company_name"
               value={formData.company_name}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
               placeholder="거래처명을 입력하세요"
               required
             />
@@ -100,7 +100,7 @@ export default function AddClientPage() {
               name="contact_person"
               value={formData.contact_person}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
               placeholder="담당자명을 입력하세요"
             />
           </div>
@@ -114,7 +114,7 @@ export default function AddClientPage() {
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
               placeholder="연락처를 입력하세요"
             />
           </div>
@@ -128,7 +128,7 @@ export default function AddClientPage() {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
               placeholder="이메일을 입력하세요"
             />
           </div>

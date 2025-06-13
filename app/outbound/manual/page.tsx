@@ -385,7 +385,7 @@ export default function ManualOutboundPage() {
                 name="outbound_date"
                 value={formData.outbound_date}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
                 required
               />
             </div>
@@ -404,7 +404,7 @@ export default function ManualOutboundPage() {
                   name="client_id"
                   value={formData.client_id}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary bg-white"
+                  className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary bg-white text-gray-900"
                   required
                 >
                   <option value="">출고병원을 선택하세요</option>
@@ -431,7 +431,7 @@ export default function ManualOutboundPage() {
                   name="cfn"
                   value={formData.cfn}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary bg-white"
+                  className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary bg-white text-gray-900"
                   required
                 >
                   <option value="">CFN을 선택하세요</option>
@@ -462,7 +462,7 @@ export default function ManualOutboundPage() {
                   name="lot_number"
                   value={formData.lot_number}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary bg-white"
+                  className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary bg-white text-gray-900"
                   required
                 >
                   <option value="">LOT를 선택하세요</option>
@@ -490,7 +490,7 @@ export default function ManualOutboundPage() {
                 value={formData.quantity}
                 onChange={handleChange}
                 min="1"
-                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
                 placeholder="출고할 수량을 입력하세요"
                 required
               />
@@ -515,7 +515,7 @@ export default function ManualOutboundPage() {
                 value={formData.notes}
                 onChange={handleChange}
                 rows={3}
-                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
                 placeholder="출고 관련 메모를 입력하세요 (선택사항)"
               />
             </div>

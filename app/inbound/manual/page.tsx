@@ -180,7 +180,7 @@ export default function ManualInboundPage() {
               name="inbound_date"
               value={formData.inbound_date}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
               required
             />
           </div>
@@ -199,7 +199,7 @@ export default function ManualInboundPage() {
                 name="client_id"
                 value={formData.client_id}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary bg-white appearance-none"
+                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary bg-white appearance-none text-gray-900"
                 required
               >
                 <option value="">거래처를 선택하세요</option>
@@ -230,7 +230,7 @@ export default function ManualInboundPage() {
                 name="product_id"
                 value={formData.product_id}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary bg-white appearance-none"
+                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary bg-white appearance-none text-gray-900"
                 required
                 disabled={!formData.client_id}
               >
@@ -255,7 +255,7 @@ export default function ManualInboundPage() {
               name="lot_number"
               value={formData.lot_number}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
               placeholder="LOT 번호를 입력하세요"
             />
           </div>
@@ -270,7 +270,7 @@ export default function ManualInboundPage() {
               name="expiry_date"
               value={formData.expiry_date}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
             />
           </div>
 
@@ -284,7 +284,7 @@ export default function ManualInboundPage() {
               name="quantity"
               value={formData.quantity}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
               placeholder="입고 수량을 입력하세요"
               min="1"
               required
@@ -301,7 +301,7 @@ export default function ManualInboundPage() {
               value={formData.notes}
               onChange={handleChange}
               rows={3}
-              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
               placeholder="입고 관련 메모를 입력하세요"
             />
           </div>

@@ -157,7 +157,7 @@ export default function EditSupplierPage() {
                 name="hospital_name"
                 value={formData.hospital_name}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
                 placeholder="병원명을 입력하세요"
                 required
               />
@@ -172,7 +172,7 @@ export default function EditSupplierPage() {
                 name="hospital_code"
                 value={formData.hospital_code}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
                 placeholder="병원 코드를 입력하세요"
               />
             </div>
@@ -189,7 +189,7 @@ export default function EditSupplierPage() {
                 name="contact_person"
                 value={formData.contact_person}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
                 placeholder="담당자명을 입력하세요"
               />
             </div>
@@ -203,7 +203,7 @@ export default function EditSupplierPage() {
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
                 placeholder="연락처를 입력하세요"
               />
             </div>
@@ -218,7 +218,7 @@ export default function EditSupplierPage() {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
               placeholder="이메일을 입력하세요"
             />
           </div>
@@ -234,7 +234,7 @@ export default function EditSupplierPage() {
                 name="city"
                 value={formData.city}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
                 placeholder="도시를 입력하세요"
               />
             </div>
@@ -248,7 +248,7 @@ export default function EditSupplierPage() {
                 name="business_number"
                 value={formData.business_number}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
                 placeholder="사업자번호를 입력하세요"
               />
             </div>
@@ -263,7 +263,7 @@ export default function EditSupplierPage() {
               name="address"
               value={formData.address}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
               placeholder="상세 주소를 입력하세요"
             />
           </div>
@@ -277,7 +277,7 @@ export default function EditSupplierPage() {
               value={formData.notes}
               onChange={handleChange}
               rows={3}
-              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
               placeholder="추가 메모를 입력하세요"
             />
           </div>
