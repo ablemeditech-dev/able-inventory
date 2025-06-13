@@ -112,10 +112,8 @@ export default function ScanInboundPage() {
   }, [activeTab, isScanning]);
 
   // UPN으로 products 테이블에서 CFN과 client 정보 조회
-  const enrichWithProductData = async (
-    parsedItems: Record<string, unknown>[]
-  ) => {
-    const upns = parsedItems.map((item) => item.upn);
+  const enrichWithProductData = async (parsedItems: any[]) => {
+    const upns = parsedItems.map((item) => String(item.upn));
 
     try {
       // products 테이블에서 UPN으로 CFN과 client_id 조회
@@ -147,20 +145,24 @@ export default function ScanInboundPage() {
 
       // 파싱된 데이터에 제품 및 클라이언트 정보 추가
       const enrichedData: ParsedData[] = parsedItems.map((item) => {
-        const product = productMap.get(item.upn);
+        const upn = String(item.upn ?? "");
+        const ubd = String(item.ubd ?? "");
+        const lot = String(item.lot ?? "");
+        const rawData = String(item.rawData ?? "");
+        const product = productMap.get(upn);
         const client = product?.client_id
           ? clientMap.get(product.client_id)
           : null;
 
         return {
-          upn: item.upn,
+          upn,
           cfn: product?.cfn || null,
           productName: product?.description || null,
           clientId: product?.client_id || null,
           clientName: client?.company_name || null,
-          ubd: item.ubd,
-          lot: item.lot,
-          rawData: item.rawData,
+          ubd,
+          lot,
+          rawData,
           error: product ? undefined : "제품을 찾을 수 없습니다",
         };
       });
