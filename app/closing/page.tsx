@@ -108,8 +108,8 @@ export default function ClosingPage() {
         ...movement,
         product: productMap.get(movement.product_id),
         to_location: movement.from_location_id
-          ? locationMap.get(movement.from_location_id)
-          : null,
+          ? locationMap.get(movement.from_location_id) ?? undefined
+          : undefined,
       }));
 
       // 날짜별, 병원별로 그룹핑
@@ -122,7 +122,7 @@ export default function ClosingPage() {
     }
   };
 
-  const groupUsedRecords = (records: any[]): GroupedUsed[] => {
+  const groupUsedRecords = (records: UsedRecord[]): GroupedUsed[] => {
     const groups: { [key: string]: GroupedUsed } = {};
 
     records.forEach((record) => {

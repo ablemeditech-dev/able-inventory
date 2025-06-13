@@ -91,7 +91,7 @@ export default function HospitalSpecificInventory({
       ];
 
       // 거래처 정보 별도 조회
-      let clients: any[] = [];
+      let clients: { id: string; company_name: string }[] = [];
       if (clientIds.length > 0) {
         const { data: clientsData, error: clientsError } = await supabase
           .from("clients")
@@ -110,39 +110,41 @@ export default function HospitalSpecificInventory({
       // 재고 계산
       const inventoryMap = new Map<string, InventoryItem>();
 
-      movements.forEach((movement: any) => {
-        const product = productMap.get(movement.product_id);
-        if (!product) return;
+      movements.forEach(
+        (movement: {
+          product_id: string;
+          lot_number?: string;
+          ubd_date?: string;
+          quantity: number;
+          from_location_id?: string;
+          to_location_id?: string;
+        }) => {
+          const product = productMap.get(movement.product_id);
+          if (!product) return;
 
-        const client = clientMap.get(product.client_id);
-        const key = `${product.cfn}-${movement.lot_number}-${movement.ubd_date}`;
+          const client = clientMap.get(product.client_id);
+          const key = `${product.cfn}-${movement.lot_number}-${movement.ubd_date}`;
 
-        if (!inventoryMap.has(key)) {
-          inventoryMap.set(key, {
-            cfn: product.cfn || "",
-            lot_number: movement.lot_number || "",
-            ubd_date: movement.ubd_date || "",
-            quantity: 0,
-            client_name: client?.company_name || "",
-          });
+          if (!inventoryMap.has(key)) {
+            inventoryMap.set(key, {
+              cfn: product.cfn || "",
+              lot_number: movement.lot_number || "",
+              ubd_date: movement.ubd_date || "",
+              quantity: 0,
+              client_name: client?.company_name || "",
+            });
+          }
+
+          const item = inventoryMap.get(key)!;
+
+          // 병원으로 들어오는 경우 (+), 병원에서 나가는 경우 (-)
+          if (movement.to_location_id === hospital.id) {
+            item.quantity += movement.quantity || 0;
+          } else if (movement.from_location_id === hospital.id) {
+            item.quantity -= movement.quantity || 0;
+          }
         }
-
-        const item = inventoryMap.get(key)!;
-
-        // 병원으로 들어오는 경우 (+): ABLE에서 병원으로 판매 (movement_reason = 'sale')
-        // 병원에서 나가는 경우 (-): 병원에서 사용 (movement_reason = 'usage')
-        if (
-          movement.to_location_id === hospital.id &&
-          movement.movement_reason === "sale"
-        ) {
-          item.quantity += movement.quantity || 0;
-        } else if (
-          movement.from_location_id === hospital.id &&
-          movement.movement_reason === "usage"
-        ) {
-          item.quantity -= movement.quantity || 0;
-        }
-      });
+      );
 
       // 수량이 0보다 큰 항목만 필터링하고 정렬
       const currentInventory = Array.from(inventoryMap.values())
@@ -155,7 +157,7 @@ export default function HospitalSpecificInventory({
         });
 
       setInventory(currentInventory);
-    } catch (err) {
+    } catch (_err) {
       setError("재고 정보를 불러오는데 실패했습니다.");
     } finally {
       setLoading(false);

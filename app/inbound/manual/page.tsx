@@ -147,26 +147,8 @@ export default function ManualInboundPage() {
 
       // 성공 시 입고관리 페이지로 이동
       router.push("/inbound");
-    } catch (err: any) {
-      console.error("입고 등록 실패:", err);
-      console.error("에러 상세:", {
-        message: err.message,
-        details: err.details,
-        hint: err.hint,
-        code: err.code,
-      });
-
-      let errorMessage = "입고 등록에 실패했습니다.";
-
-      if (err.message) {
-        errorMessage += ` (${err.message})`;
-      }
-
-      if (err.details) {
-        errorMessage += ` 상세: ${err.details}`;
-      }
-
-      setError(errorMessage);
+    } catch (_err) {
+      setError("입고 정보를 불러오는데 실패했습니다. 다시 시도해주세요.");
     } finally {
       setLoading(false);
     }

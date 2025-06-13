@@ -113,7 +113,7 @@ export default function OutboundPage() {
       const enrichedMovements =
         movements?.map((movement) => {
           const product = productMap.get(movement.product_id);
-          let to_location = null;
+          let to_location: { location_name: string } | undefined = undefined;
 
           if (movement.to_location_id) {
             // 먼저 locations 테이블에서 찾기
@@ -146,7 +146,9 @@ export default function OutboundPage() {
     }
   };
 
-  const groupOutboundRecords = (records: any[]): GroupedOutbound[] => {
+  const groupOutboundRecords = (
+    records: OutboundRecord[]
+  ): GroupedOutbound[] => {
     const groups: { [key: string]: GroupedOutbound } = {};
 
     records.forEach((record) => {

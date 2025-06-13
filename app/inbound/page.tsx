@@ -104,8 +104,8 @@ export default function InboundPage() {
           ...movement,
           product: productMap.get(movement.product_id),
           from_location: movement.from_location_id
-            ? locationMap.get(movement.from_location_id)
-            : null,
+            ? locationMap.get(movement.from_location_id) ?? undefined
+            : undefined,
         })) || [];
 
       // 날짜별, 거래처별로 그룹핑
@@ -118,7 +118,7 @@ export default function InboundPage() {
     }
   };
 
-  const groupInboundRecords = (records: any[]): GroupedInbound[] => {
+  const groupInboundRecords = (records: InboundRecord[]): GroupedInbound[] => {
     const groups: { [key: string]: GroupedInbound } = {};
 
     records.forEach((record) => {

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "../../../lib/supabase";
+import { StockMovement, Product, Location } from "../../../lib/utils/schema";
 
 interface GraphData {
   monthlyTrends: Array<{
@@ -98,9 +99,9 @@ export default function StatisticsGraphsPage() {
   };
 
   const calculateGraphData = (
-    movements: any[],
-    productMap: Map<string, any>,
-    locationMap: Map<string, any>
+    movements: StockMovement[],
+    productMap: Map<string, Product>,
+    locationMap: Map<string, Location>
   ): GraphData => {
     const monthlyData = new Map<
       string,

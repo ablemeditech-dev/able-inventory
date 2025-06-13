@@ -114,7 +114,7 @@ export default function UDIPage() {
       const enrichedMovements =
         movements?.map((movement) => {
           const product = productMap.get(movement.product_id);
-          let to_location = null;
+          let to_location: { location_name: string } | undefined = undefined;
 
           if (movement.to_location_id) {
             // 먼저 locations 테이블에서 찾기
@@ -147,7 +147,7 @@ export default function UDIPage() {
     }
   };
 
-  const groupUDIRecords = (records: any[]): GroupedUDI[] => {
+  const groupUDIRecords = (records: UDIRecord[]): GroupedUDI[] => {
     const groups: { [key: string]: GroupedUDI } = {};
 
     records.forEach((record) => {
@@ -205,7 +205,7 @@ export default function UDIPage() {
     }
 
     // 선택된 그룹들의 데이터를 엑셀 형식으로 변환
-    const excelData: any[] = [];
+    const excelData: Record<string, string>[] = [];
 
     udiRecords.forEach((group) => {
       const groupKey = getGroupKey(group);

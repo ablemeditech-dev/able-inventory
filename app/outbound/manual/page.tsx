@@ -125,7 +125,7 @@ export default function ManualOutboundPage() {
 
       // 입고 수량 더하기
       inboundData?.forEach((record) => {
-        const cfn = (record.products as any)?.cfn;
+        const cfn = (record.products as { cfn?: string })?.cfn;
         if (cfn) {
           stockMap.set(cfn, (stockMap.get(cfn) || 0) + record.quantity);
         }
@@ -133,7 +133,7 @@ export default function ManualOutboundPage() {
 
       // 출고 수량 빼기
       outboundData?.forEach((record) => {
-        const cfn = (record.products as any)?.cfn;
+        const cfn = (record.products as { cfn?: string })?.cfn;
         if (cfn) {
           stockMap.set(cfn, (stockMap.get(cfn) || 0) - record.quantity);
         }
@@ -150,7 +150,7 @@ export default function ManualOutboundPage() {
       // CFN 순으로 정렬
       availableStockArray.sort((a, b) => a.cfn.localeCompare(b.cfn));
       setAvailableStock(availableStockArray);
-    } catch (err) {
+    } catch (_err) {
       setError("재고 정보를 불러오는데 실패했습니다. 다시 시도해주세요.");
     } finally {
       setStockLoading(false);

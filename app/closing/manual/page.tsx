@@ -76,7 +76,7 @@ export default function ManualUsedPage() {
       }
 
       setHospitals(data || []);
-    } catch (err) {
+    } catch (_err) {
       setError("병원 목록을 불러오는데 실패했습니다. 다시 시도해주세요.");
     } finally {
       setHospitalsLoading(false);
@@ -171,7 +171,7 @@ export default function ManualUsedPage() {
       // CFN 순으로 정렬
       availableStockArray.sort((a, b) => a.cfn.localeCompare(b.cfn));
       setAvailableStock(availableStockArray);
-    } catch (err) {
+    } catch (_err) {
       setError("재고 정보를 불러오는데 실패했습니다. 다시 시도해주세요.");
     } finally {
       setStockLoading(false);
