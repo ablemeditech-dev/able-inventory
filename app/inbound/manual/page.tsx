@@ -59,8 +59,8 @@ export default function ManualInboundPage() {
       if (error) throw error;
 
       setClients(data || []);
-    } catch (err) {
-      console.error("거래처 로딩 실패:", err);
+    } catch {
+      console.error("거래처 로딩 실패:");
       setError("거래처 목록을 불러오는데 실패했습니다.");
     } finally {
       setClientsLoading(false);
@@ -79,8 +79,8 @@ export default function ManualInboundPage() {
       if (error) throw error;
 
       setProducts(data || []);
-    } catch (err) {
-      console.error("제품 로딩 실패:", err);
+    } catch {
+      console.error("제품 로딩 실패:");
       setError("제품 목록을 불러오는데 실패했습니다.");
     } finally {
       setProductsLoading(false);
@@ -147,7 +147,7 @@ export default function ManualInboundPage() {
 
       // 성공 시 입고관리 페이지로 이동
       router.push("/inbound");
-    } catch (err) {
+    } catch {
       setError("입고 정보를 불러오는데 실패했습니다. 다시 시도해주세요.");
     } finally {
       setLoading(false);

@@ -33,14 +33,6 @@ export default function ProductDetailModal({
 
   const firstProduct = products[0];
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "-";
-    return new Date(dateString).toLocaleDateString("ko-KR", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
   const handleEdit = () => {
     onClose();
     window.location.href = `/settings/product/edit?id=${firstProduct.id}`;

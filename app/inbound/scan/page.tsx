@@ -102,9 +102,6 @@ export default function ScanInboundPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isDateModalOpen, setIsDateModalOpen] = useState(false);
-  const [selectedInboundDate, setSelectedInboundDate] = useState<string | null>(
-    null
-  );
   const inputRef = useRef<HTMLInputElement>(null);
 
   // 실시간 스캔 모드에서 입력 필드에 자동 포커스
@@ -179,7 +176,6 @@ export default function ScanInboundPage() {
     setSuccess("");
     setScannedItems([]);
     setParsedData([]);
-    setSelectedInboundDate(null);
     // 입력 필드에 포커스
     setTimeout(() => {
       if (inputRef.current) {
@@ -222,7 +218,6 @@ export default function ScanInboundPage() {
     setScannedItems([]);
     setCurrentInput("");
     setParsedData([]);
-    setSelectedInboundDate(null);
     if (inputRef.current) {
       inputRef.current.focus();
     }
@@ -312,14 +307,6 @@ export default function ScanInboundPage() {
     }
   };
 
-  const handleClearPaste = () => {
-    setPasteText("");
-    setParsedData([]);
-    setError("");
-    setSuccess("");
-    setSelectedInboundDate(null);
-  };
-
   const handleLoadTestData = () => {
     setPasteText(getTestBarcodeData());
     setError("");
@@ -337,9 +324,6 @@ export default function ScanInboundPage() {
 
   const handleDateConfirm = async (inboundDate: string) => {
     const validItems = parsedData.filter((item) => !item.error);
-
-    // 선택된 날짜를 state에 저장
-    setSelectedInboundDate(inboundDate);
 
     setLoading(true);
     setError("");
