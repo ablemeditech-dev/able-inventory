@@ -130,11 +130,16 @@ export function parseGS1Barcodes(
 export function parseGS1BarcodesToJson(barcodeText: string): string {
   const result = parseGS1Barcodes(barcodeText);
 
-  if (!result.success) {
-    throw new Error(`Parsing failed:\n${result.errors.join("\n")}`);
+  // 에러가 있는 항목 확인
+  const errors = result
+    .filter((item) => item.error)
+    .map((item) => item.error!)
+    .filter(Boolean);
+  if (errors.length > 0) {
+    throw new Error(`Parsing failed:\n${errors.join("\n")}`);
   }
 
-  return JSON.stringify(result.data, null, 2);
+  return JSON.stringify(result, null, 2);
 }
 
 /**
@@ -143,14 +148,19 @@ export function parseGS1BarcodesToJson(barcodeText: string): string {
 export function parseGS1BarcodesToCsv(barcodeText: string): string {
   const result = parseGS1Barcodes(barcodeText);
 
-  if (!result.success) {
-    throw new Error(`Parsing failed:\n${result.errors.join("\n")}`);
+  // 에러가 있는 항목 확인
+  const errors = result
+    .filter((item) => item.error)
+    .map((item) => item.error!)
+    .filter(Boolean);
+  if (errors.length > 0) {
+    throw new Error(`Parsing failed:\n${errors.join("\n")}`);
   }
 
   const headers = ["UPN", "UBD", "LOT", "Raw Data"];
   const csvLines = [headers.join(",")];
 
-  result.data.forEach((item) => {
+  result.forEach((item) => {
     const row = [
       item.upn,
       item.ubd,
