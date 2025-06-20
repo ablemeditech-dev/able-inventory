@@ -5,10 +5,12 @@ interface ParsedBarcodeItem {
   rawData: string;
 }
 
-interface BarcodeParseResult {
-  success: boolean;
-  data: ParsedBarcodeItem[];
-  errors: string[];
+export interface BarcodeParseResult {
+  upn: string;
+  lot: string;
+  ubd: string;
+  rawData: string;
+  error?: string;
 }
 
 /**
@@ -102,39 +104,24 @@ function parseSingleBarcode(barcodeText: string): ParsedBarcodeItem {
 /**
  * 여러 줄의 GS1-128 바코드 텍스트를 파싱
  */
-export function parseGS1Barcodes(barcodeText: string): BarcodeParseResult {
-  const lines = barcodeText
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
+export function parseGS1Barcodes(
+  barcodes: string | string[]
+): BarcodeParseResult[] {
+  const inputBarcodes = Array.isArray(barcodes) ? barcodes : [barcodes];
 
-  if (lines.length === 0) {
-    return {
-      success: false,
-      data: [],
-      errors: ["No barcode data provided"],
-    };
-  }
-
-  const results: ParsedBarcodeItem[] = [];
-  const errors: string[] = [];
-
-  lines.forEach((line, index) => {
+  return inputBarcodes.map((barcode) => {
     try {
-      const parsed = parseSingleBarcode(line);
-      results.push(parsed);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      errors.push(`Line ${index + 1}: ${errorMessage} (${line})`);
+      return { ...parseSingleBarcode(barcode), rawData: barcode };
+    } catch (e: any) {
+      return {
+        upn: "",
+        lot: "",
+        ubd: "",
+        rawData: barcode,
+        error: e.message || "Invalid barcode format",
+      };
     }
   });
-
-  return {
-    success: errors.length === 0,
-    data: results,
-    errors,
-  };
 }
 
 /**

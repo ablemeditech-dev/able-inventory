@@ -25,21 +25,44 @@ interface ParsedData {
   lot: string;
   rawData: string;
   error?: string;
+  availableStock: number;
 }
 
-interface InboundDateModalProps {
+interface BarcodeItem {
+  upn: string;
+  lot: string;
+  ubd: string;
+  rawData: string;
+  error?: string;
+}
+
+interface OutboundDateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (date: string) => void;
   itemCount: number;
 }
 
-function InboundDateModal({
+interface Hospital {
+  id: string;
+  hospital_name: string;
+}
+
+interface HospitalSelectModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (hospitalId: string, hospitalName: string) => void;
+  hospitals: Hospital[];
+  itemCount: number;
+  outboundDate: string;
+}
+
+function OutboundDateModal({
   isOpen,
   onClose,
   onConfirm,
   itemCount,
-}: InboundDateModalProps) {
+}: OutboundDateModalProps) {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
@@ -54,14 +77,14 @@ function InboundDateModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-96 max-w-90vw">
-        <h3 className="text-lg font-semibold text-primary mb-4">입고일 선택</h3>
+        <h3 className="text-lg font-semibold text-primary mb-4">출고일 선택</h3>
         <p className="text-text-secondary mb-4">
-          {itemCount}개 제품의 입고일을 선택해주세요.
+          {itemCount}개 제품의 출고일을 선택해주세요.
         </p>
 
         <div className="mb-6">
           <label className="block text-sm font-medium text-primary mb-2">
-            입고일
+            출고일
           </label>
           <input
             type="date"
@@ -90,7 +113,82 @@ function InboundDateModal({
   );
 }
 
-export default function ScanInboundPage() {
+function HospitalSelectModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  hospitals,
+  itemCount,
+  outboundDate,
+}: HospitalSelectModalProps) {
+  const [selectedHospitalId, setSelectedHospitalId] = useState("");
+
+  const handleConfirm = () => {
+    if (selectedHospitalId) {
+      const selectedHospital = hospitals.find(
+        (h) => h.id === selectedHospitalId
+      );
+      onConfirm(selectedHospitalId, selectedHospital?.hospital_name || "");
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <h2 className="text-xl font-bold text-primary mb-4">출고 병원 선택</h2>
+
+        <div className="mb-4 p-3 bg-accent-soft/20 rounded-lg">
+          <p className="text-sm text-text-secondary">
+            출고일:{" "}
+            <span className="font-medium text-primary">{outboundDate}</span>
+          </p>
+          <p className="text-sm text-text-secondary">
+            출고 품목:{" "}
+            <span className="font-medium text-primary">{itemCount}개</span>
+          </p>
+        </div>
+
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-primary mb-2">
+            병원 선택 *
+          </label>
+          <select
+            value={selectedHospitalId}
+            onChange={(e) => setSelectedHospitalId(e.target.value)}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+          >
+            <option value="">병원을 선택하세요</option>
+            {hospitals.map((hospital) => (
+              <option key={hospital.id} value={hospital.id}>
+                {hospital.hospital_name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-text-secondary hover:bg-gray-50 transition-colors"
+          >
+            취소
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={!selectedHospitalId}
+            className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            출고 등록
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function ScanOutboundPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"realtime" | "paste">("realtime");
   const [isScanning, setIsScanning] = useState(false);
@@ -102,6 +200,9 @@ export default function ScanInboundPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isDateModalOpen, setIsDateModalOpen] = useState(false);
+  const [isHospitalModalOpen, setIsHospitalModalOpen] = useState(false);
+  const [hospitals, setHospitals] = useState<Hospital[]>([]);
+  const [selectedOutboundDate, setSelectedOutboundDate] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   // 실시간 스캔 모드에서 입력 필드에 자동 포커스
@@ -111,68 +212,24 @@ export default function ScanInboundPage() {
     }
   }, [activeTab, isScanning]);
 
-  // UPN으로 products 테이블에서 CFN과 client 정보 조회
-  const enrichWithProductData = async (parsedItems: any[]) => {
-    const upns = parsedItems.map((item) => String(item.upn));
+  // 병원 목록 가져오기
+  useEffect(() => {
+    const fetchHospitals = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("hospitals")
+          .select("id, hospital_name")
+          .order("hospital_name");
 
-    try {
-      // products 테이블에서 UPN으로 CFN과 client_id 조회
-      const { data: products, error: productsError } = await supabase
-        .from("products")
-        .select("upn, cfn, description, client_id")
-        .in("upn", upns);
+        if (error) throw error;
+        setHospitals(data || []);
+      } catch (error) {
+        console.error("병원 목록 가져오기 실패:", error);
+      }
+    };
 
-      if (productsError) throw productsError;
-
-      // 고유한 client_id들 추출
-      const clientIds = [
-        ...new Set(products?.map((p) => p.client_id).filter(Boolean) || []),
-      ];
-
-      // clients 테이블에서 client 정보 조회
-      const { data: clients, error: clientsError } = await supabase
-        .from("clients")
-        .select("id, company_name")
-        .in("id", clientIds);
-
-      if (clientsError) throw clientsError;
-
-      // UPN을 키로 하는 Map 생성
-      const productMap = new Map(products?.map((p) => [p.upn, p]) || []);
-
-      // client_id를 키로 하는 Map 생성
-      const clientMap = new Map(clients?.map((c) => [c.id, c]) || []);
-
-      // 파싱된 데이터에 제품 및 클라이언트 정보 추가
-      const enrichedData: ParsedData[] = parsedItems.map((item) => {
-        const upn = String(item.upn ?? "");
-        const ubd = String(item.ubd ?? "");
-        const lot = String(item.lot ?? "");
-        const rawData = String(item.rawData ?? "");
-        const product = productMap.get(upn);
-        const client = product?.client_id
-          ? clientMap.get(product.client_id)
-          : null;
-
-        return {
-          upn,
-          cfn: product?.cfn || null,
-          productName: product?.description || null,
-          clientId: product?.client_id || null,
-          clientName: client?.company_name || null,
-          ubd,
-          lot,
-          rawData,
-          error: product ? undefined : "제품을 찾을 수 없습니다",
-        };
-      });
-
-      return enrichedData;
-    } catch (error) {
-      console.error("제품 데이터 조회 실패:", error);
-      throw error;
-    }
-  };
+    fetchHospitals();
+  }, []);
 
   const handleStartScan = () => {
     setIsScanning(true);
@@ -194,23 +251,14 @@ export default function ScanInboundPage() {
   };
 
   const handleScanInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Enter 키를 누르면 스캔 완료로 처리
     if (e.key === "Enter" && currentInput.trim()) {
       const newItem: ScannedItem = {
         id: Date.now().toString(),
         data: currentInput.trim(),
         timestamp: new Date(),
       };
-
-      setScannedItems((prev) => [...prev, newItem]);
+      setScannedItems((prev) => [newItem, ...prev]);
       setCurrentInput("");
-
-      // 다음 스캔을 위해 입력 필드에 다시 포커스
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-        }
-      }, 50);
     }
   };
 
@@ -220,10 +268,176 @@ export default function ScanInboundPage() {
 
   const handleClearScannedItems = () => {
     setScannedItems([]);
-    setCurrentInput("");
     setParsedData([]);
-    if (inputRef.current) {
-      inputRef.current.focus();
+    setError("");
+    setSuccess("");
+  };
+
+  const enrichWithProductData = async (parsedItems: BarcodeItem[]) => {
+    const upns = parsedItems.map((item) => String(item.upn));
+    const lots = parsedItems.map((item) => String(item.lot));
+    const ubds = parsedItems.map((item) => String(item.ubd));
+
+    try {
+      const { data: products, error: productsError } = await supabase
+        .from("products")
+        .select("id, upn, cfn, description, client_id")
+        .in("upn", upns);
+      if (productsError) throw productsError;
+
+      const clientIds = [
+        ...new Set(products?.map((p) => p.client_id).filter(Boolean) || []),
+      ];
+      const { data: clients, error: clientsError } = await supabase
+        .from("clients")
+        .select("id, company_name")
+        .in("id", clientIds);
+      if (clientsError) throw clientsError;
+
+      const productMap = new Map(products?.map((p) => [p.upn, p]) || []);
+      const clientMap = new Map(clients?.map((c) => [c.id, c]) || []);
+
+      // CFN 배열 생성 (UPN 대신 CFN으로 재고 조회)
+      const cfns = parsedItems
+        .map((item) => {
+          const product = productMap.get(String(item.upn));
+          return product?.cfn || "";
+        })
+        .filter(Boolean);
+
+      // 디버깅: 파싱된 데이터 확인
+      console.log("파싱된 데이터:", parsedItems);
+      console.log("UPNs:", upns);
+      console.log("CFNs:", cfns);
+      console.log("LOTs:", lots);
+      console.log("UBDs:", ubds);
+
+      // ABLE 중앙창고 ID
+      const ableLocationId = "c24e8564-4987-4cfd-bd0b-e9f05a4ab541";
+
+      // 해당 CFN들의 product_id 조회
+      const cfnProducts = products?.filter((p) => cfns.includes(p.cfn)) || [];
+      const productIds = cfnProducts.map((p) => p.id);
+
+      console.log("CFN 제품들:", cfnProducts);
+      console.log("제품 IDs:", productIds);
+
+      // 재고 계산
+      let stockMap = new Map<string, number>();
+
+      if (productIds.length === 0) {
+        console.log("제품 ID를 찾을 수 없음");
+        // 빈 맵으로 계속 진행
+      } else {
+        // 입고/출고 이력에서 ABLE 창고의 현재 재고 계산
+        const { data: movements, error: movementsError } = await supabase
+          .from("stock_movements")
+          .select(
+            `
+            product_id,
+            lot_number,
+            ubd_date,
+            quantity,
+            movement_type,
+            from_location_id,
+            to_location_id
+          `
+          )
+          .in("product_id", productIds)
+          .or(
+            `from_location_id.eq.${ableLocationId},to_location_id.eq.${ableLocationId}`
+          )
+          .order("created_at", { ascending: false });
+
+        if (movementsError) {
+          console.error("재고 이력 조회 오류:", movementsError);
+          throw movementsError;
+        }
+
+        console.log("재고 이력 데이터:", movements);
+
+        // 제품 맵 생성 (ID -> CFN)
+        const productIdToCfnMap = new Map(
+          cfnProducts.map((p) => [p.id, p.cfn])
+        );
+
+        movements?.forEach((movement) => {
+          const cfn = productIdToCfnMap.get(movement.product_id);
+          if (!cfn) return;
+
+          // UBD를 YYYY-MM-DD에서 YYMMDD 형식으로 변환
+          let ubdKey = movement.ubd_date;
+          if (ubdKey && ubdKey.includes("-") && ubdKey.length === 10) {
+            // 2027-11-11 -> 271111
+            const parts = ubdKey.split("-");
+            if (parts.length === 3) {
+              const year = parts[0].slice(-2); // 2027 -> 27
+              const month = parts[1]; // 11
+              const day = parts[2]; // 11
+              ubdKey = year + month + day; // 271111
+            }
+          }
+
+          const key = `${cfn}-${movement.lot_number}-${ubdKey}`;
+
+          if (!stockMap.has(key)) {
+            stockMap.set(key, 0);
+          }
+
+          // ABLE로 들어오는 경우 (+), ABLE에서 나가는 경우 (-)
+          if (movement.to_location_id === ableLocationId) {
+            stockMap.set(key, stockMap.get(key)! + (movement.quantity || 0));
+          } else if (movement.from_location_id === ableLocationId) {
+            stockMap.set(key, stockMap.get(key)! - (movement.quantity || 0));
+          }
+        });
+
+        console.log("계산된 재고 맵:", Array.from(stockMap.entries()));
+      }
+
+      const enrichedData: ParsedData[] = parsedItems.map((item) => {
+        const upn = String(item.upn ?? "");
+        const ubd = String(item.ubd ?? "");
+        const lot = String(item.lot ?? "");
+
+        const product = productMap.get(upn);
+        const client = product?.client_id
+          ? clientMap.get(product.client_id)
+          : null;
+        // CFN으로 재고 검색 (YYMMDD 형식으로 검색)
+        const cfn = product?.cfn || "";
+        const stockKey = `${cfn}-${lot}-${ubd}`; // CFN + LOT + UBD (모두 YYMMDD 형식)
+        const availableStock: number = stockMap.get(stockKey) || 0;
+
+        // 디버깅: 재고 매칭 확인
+        console.log(`재고 키: ${stockKey}, 재고량: ${availableStock}`);
+        console.log("재고 맵 전체:", Array.from(stockMap.entries()));
+
+        let error;
+        if (!product) {
+          error = "제품을 찾을 수 없습니다";
+        } else if (availableStock <= 0) {
+          error = "재고가 없습니다";
+        }
+
+        return {
+          upn,
+          cfn: product?.cfn || null,
+          productName: product?.description || null,
+          clientId: product?.client_id || null,
+          clientName: client?.company_name || null,
+          ubd,
+          lot,
+          rawData: String(item.rawData ?? ""),
+          availableStock,
+          error,
+        };
+      });
+
+      return enrichedData;
+    } catch (error) {
+      console.error("데이터 처리 실패:", error);
+      throw error;
     }
   };
 
@@ -272,128 +486,92 @@ export default function ScanInboundPage() {
     }
   };
 
-  const handleLoadTestData = () => {
-    setPasteText(getTestBarcodeData());
-    setError("");
-    setSuccess("");
-  };
-
-  const handleInboundRegister = () => {
-    const validItems = parsedData.filter((item) => !item.error);
-    if (validItems.length === 0) {
-      setError("입고 등록할 유효한 항목이 없습니다.");
+  const handleOutboundRegister = () => {
+    if (parsedData.some((item) => item.error)) {
+      setError("오류가 있는 항목을 수정하거나 제거해주세요.");
+      return;
+    }
+    if (parsedData.length === 0) {
+      setError("출고할 제품이 없습니다.");
       return;
     }
     setIsDateModalOpen(true);
   };
 
-  const handleDateConfirm = async (inboundDate: string) => {
-    const validItems = parsedData.filter((item) => !item.error);
+  const handleDateConfirm = (outboundDate: string) => {
+    setSelectedOutboundDate(outboundDate);
+    setIsDateModalOpen(false);
+    setIsHospitalModalOpen(true);
+  };
 
+  const handleHospitalConfirm = async (
+    hospitalId: string,
+    hospitalName: string
+  ) => {
+    setIsHospitalModalOpen(false);
     setLoading(true);
     setError("");
     setSuccess("");
 
-    try {
-      // ABLE 중앙창고 ID
-      const ABLE_WAREHOUSE_ID = "c24e8564-4987-4cfd-bd0b-e9f05a4ab541";
+    const { data: products, error: productsError } = await supabase
+      .from("products")
+      .select("id, upn")
+      .in(
+        "upn",
+        parsedData.map((p) => p.upn)
+      );
 
-      // 기존 movement_reason 값들 확인
-      const { data: existingReasons, error: reasonError } = await supabase
-        .from("stock_movements")
-        .select("movement_reason")
-        .limit(10);
+    if (productsError) {
+      setError(`제품 정보 조회 실패: ${productsError.message}`);
+      setLoading(false);
+      return;
+    }
 
-      if (!reasonError && existingReasons) {
-        console.log("기존 movement_reason 값들:", [
-          ...new Set(existingReasons.map((r) => r.movement_reason)),
-        ]);
-      }
+    const productUonMap = new Map(products.map((p) => [p.upn, p.id]));
 
-      // CFN으로 products 테이블에서 실제 product ID 조회
-      const cfns = validItems.map((item) => item.cfn).filter(Boolean);
-      const { data: products, error: productError } = await supabase
-        .from("products")
-        .select("id, cfn")
-        .in("cfn", cfns);
-
-      if (productError) {
-        console.error("제품 ID 조회 에러:", productError);
-        throw productError;
-      }
-
-      // CFN을 키로 하는 product ID Map 생성
-      const cfnToIdMap = new Map(products?.map((p) => [p.cfn, p.id]) || []);
-
-      // 같은 UPN, LOT, UBD를 가진 항목들을 그룹핑하여 수량 합산
-      const groupedItems = new Map();
-
-      validItems.forEach((item) => {
-        const key = `${item.upn}-${item.lot}-${item.ubd}`;
-        if (groupedItems.has(key)) {
-          groupedItems.get(key).quantity += 1;
-        } else {
-          groupedItems.set(key, {
-            ...item,
-            quantity: 1,
-          });
-        }
-      });
-
-      // stock_movements에 입고 기록 추가
-      const stockMovements = Array.from(groupedItems.values()).map((item) => {
-        const productId = cfnToIdMap.get(item.cfn);
-        if (!productId) {
-          throw new Error(
-            `CFN ${item.cfn}에 해당하는 제품 ID를 찾을 수 없습니다.`
-          );
-        }
+    const recordsToInsert = parsedData
+      .filter((item) => !item.error)
+      .map((item) => {
+        // UBD를 YYYY-MM-DD 형식으로 변환 (YYMMDD -> YYYY-MM-DD)
+        const formattedUbd =
+          item.ubd.length === 6
+            ? `20${item.ubd.substring(0, 2)}-${item.ubd.substring(
+                2,
+                4
+              )}-${item.ubd.substring(4, 6)}`
+            : item.ubd;
 
         return {
-          product_id: productId, // 실제 product ID (UUID) 사용
-          movement_type: "in",
-          movement_reason: "purchase", // 다른 값으로 시도
-          from_location_id: item.clientId, // 거래처 ID
-          to_location_id: ABLE_WAREHOUSE_ID,
-          quantity: item.quantity, // 합산된 수량
+          product_id: productUonMap.get(item.upn),
+          from_location_id: "c24e8564-4987-4cfd-bd0b-e9f05a4ab541", // ABLE 중앙창고
+          to_location_id: hospitalId, // 선택된 병원 ID
+          quantity: 1, // 스캔당 1개 출고로 가정
           lot_number: item.lot,
-          ubd_date: `20${item.ubd.substring(0, 2)}-${item.ubd.substring(
-            2,
-            4
-          )}-${item.ubd.substring(4, 6)}`, // YYMMDD → YYYY-MM-DD
-          inbound_date: inboundDate,
+          ubd_date: formattedUbd,
+          movement_type: "out",
+          movement_reason: "sale",
+          inbound_date: selectedOutboundDate,
+          notes: "스캔출고",
         };
       });
 
-      console.log("삽입할 데이터:", stockMovements);
-
-      const { error: insertError } = await supabase
+    try {
+      const { error } = await supabase
         .from("stock_movements")
-        .insert(stockMovements);
-
-      if (insertError) {
-        console.error("Supabase 에러 상세:", insertError);
-        throw insertError;
-      }
+        .insert(recordsToInsert);
+      if (error) throw error;
 
       setSuccess(
-        `${validItems.length}개 항목이 성공적으로 입고 등록되었습니다.`
+        `${recordsToInsert.length}개의 제품이 성공적으로 출고 처리되었습니다.`
       );
-
-      // 데이터 초기화 (선택된 날짜는 유지)
       setParsedData([]);
       setScannedItems([]);
-      setPasteText("");
 
-      // 입고 목록 페이지로 이동
       setTimeout(() => {
-        router.push("/inbound");
-      }, 1500); // 성공 메시지를 잠시 보여준 후 이동
-    } catch (error) {
-      console.error("입고 등록 에러:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "알 수 없는 오류";
-      setError(`입고 등록 중 오류 발생: ${errorMessage}`);
+        router.push("/outbound");
+      }, 2000);
+    } catch (err: any) {
+      setError(`출고 처리 실패: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -404,9 +582,9 @@ export default function ScanInboundPage() {
       <div className="max-w-4xl mx-auto">
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-primary">스캔 입고</h1>
+          <h1 className="text-2xl font-bold text-primary">스캔 출고</h1>
           <Link
-            href="/inbound"
+            href="/outbound"
             className="px-4 py-2 bg-accent-soft text-text-secondary rounded-lg hover:bg-accent-light transition-colors"
           >
             ← 돌아가기
@@ -684,7 +862,10 @@ export default function ScanInboundPage() {
                   스캔 데이터
                 </label>
                 <button
-                  onClick={handleLoadTestData}
+                  onClick={() => {
+                    const testData = getTestBarcodeData();
+                    setPasteText(testData);
+                  }}
                   className="px-3 py-1 text-xs bg-accent-soft text-text-secondary rounded hover:bg-accent-light transition-colors"
                 >
                   테스트 데이터 로드
@@ -760,6 +941,9 @@ export default function ScanInboundPage() {
                       LOT
                     </th>
                     <th className="border border-accent-soft px-4 py-2 text-left text-sm font-medium text-primary">
+                      재고
+                    </th>
+                    <th className="border border-accent-soft px-4 py-2 text-left text-sm font-medium text-primary">
                       상태
                     </th>
                   </tr>
@@ -792,6 +976,9 @@ export default function ScanInboundPage() {
                       </td>
                       <td className="border border-accent-soft px-4 py-2 text-sm font-mono">
                         {item.lot}
+                      </td>
+                      <td className="border border-accent-soft px-4 py-2 text-sm font-mono">
+                        {item.availableStock}개
                       </td>
                       <td className="border border-accent-soft px-4 py-2 text-sm">
                         {item.error ? (
@@ -829,7 +1016,7 @@ export default function ScanInboundPage() {
                               />
                             </svg>
                             <span className="hidden sm:inline text-xs">
-                              확인됨
+                              출고가능
                             </span>
                           </span>
                         )}
@@ -840,7 +1027,7 @@ export default function ScanInboundPage() {
               </table>
             </div>
 
-            {/* 입고 등록 버튼 */}
+            {/* 출고 등록 버튼 */}
             <div className="mt-4 text-center">
               {parsedData.some((item) => item.error) ? (
                 <button
@@ -875,7 +1062,7 @@ export default function ScanInboundPage() {
                 </button>
               ) : (
                 <button
-                  onClick={handleInboundRegister}
+                  onClick={handleOutboundRegister}
                   disabled={loading}
                   className="px-8 py-4 bg-primary text-text-primary rounded-lg hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 mx-auto shadow-md hover:shadow-lg"
                 >
@@ -889,11 +1076,11 @@ export default function ScanInboundPage() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M7 16l-4-4m0 0l4-4m-4 4h18"
+                      d="M17 8l4 4m0 0l-4 4m4-4H3"
                     />
                   </svg>
                   <span className="font-semibold text-lg">
-                    입고 등록 ({parsedData.filter((item) => !item.error).length}
+                    출고 등록 ({parsedData.filter((item) => !item.error).length}
                     개)
                   </span>
                 </button>
@@ -916,9 +1103,9 @@ export default function ScanInboundPage() {
                       />
                     </svg>
                     <span>
-                      일부 제품을 찾을 수 없습니다.
+                      일부 제품을 찾을 수 없거나 재고가 부족합니다.
                       <br />
-                      제품 등록 후 다시 시도해주세요.
+                      제품 등록 또는 재고 확인 후 다시 시도해주세요.
                     </span>
                   </p>
                 </div>
@@ -927,12 +1114,25 @@ export default function ScanInboundPage() {
           </div>
         )}
 
-        {/* 입고일 선택 모달 */}
-        <InboundDateModal
+        {/* 출고일 선택 모달 */}
+        <OutboundDateModal
           isOpen={isDateModalOpen}
           onClose={() => setIsDateModalOpen(false)}
           onConfirm={handleDateConfirm}
           itemCount={parsedData.filter((item) => !item.error).length}
+        />
+
+        {/* 병원 선택 모달 */}
+        <HospitalSelectModal
+          isOpen={isHospitalModalOpen}
+          onClose={() => {
+            setIsHospitalModalOpen(false);
+            setSelectedOutboundDate("");
+          }}
+          onConfirm={handleHospitalConfirm}
+          hospitals={hospitals}
+          itemCount={parsedData.filter((item) => !item.error).length}
+          outboundDate={selectedOutboundDate}
         />
       </div>
     </div>

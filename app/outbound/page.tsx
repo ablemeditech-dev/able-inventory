@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { useRouter } from "next/navigation";
+import OutboundMethodModal from "../components/modals/OutboundMethodModal";
 
 interface OutboundRecord {
   id: string;
@@ -35,6 +36,7 @@ export default function OutboundPage() {
   const [outboundRecords, setOutboundRecords] = useState<GroupedOutbound[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [isMethodModalOpen, setIsMethodModalOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -199,9 +201,7 @@ export default function OutboundPage() {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-primary">출고관리</h1>
           <button
-            onClick={() => {
-              router.push("/outbound/manual");
-            }}
+            onClick={() => setIsMethodModalOpen(true)}
             className="bg-primary text-text-primary px-4 py-2 rounded-lg hover:bg-accent-soft transition-colors flex items-center space-x-2"
           >
             <svg
@@ -365,6 +365,12 @@ export default function OutboundPage() {
           </div>
         )}
       </div>
+
+      {/* 출고 방식 선택 모달 */}
+      <OutboundMethodModal
+        isOpen={isMethodModalOpen}
+        onClose={() => setIsMethodModalOpen(false)}
+      />
     </div>
   );
 }
