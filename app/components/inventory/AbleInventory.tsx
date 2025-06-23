@@ -175,17 +175,45 @@ export default function AbleInventory() {
     );
   }
 
+  const handleStockAudit = () => {
+    // 재고조사 기능 구현 예정
+    alert("재고조사 기능은 준비 중입니다.");
+  };
+
   return (
     <div className="p-6">
       <div>
-        <div className="px-6 py-4">
-          <h2 className="text-lg font-semibold text-black">
-            ABLE 중앙창고 재고 (총{" "}
-            {inventory
-              .reduce((sum, item) => sum + item.quantity, 0)
-              .toLocaleString()}
-            ea)
-          </h2>
+        <div className="px-3 md:px-6 py-3 md:py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-3 md:space-x-4">
+            <h2 className="text-base md:text-lg font-semibold text-black">
+              ABLE 중앙창고
+            </h2>
+            <span className="text-base md:text-lg font-bold text-primary">
+              {inventory
+                .reduce((sum, item) => sum + item.quantity, 0)
+                .toLocaleString()}
+              ea
+            </span>
+          </div>
+          <button
+            onClick={handleStockAudit}
+            className="px-3 md:px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center space-x-1 md:space-x-2 text-sm md:text-base"
+          >
+            <svg
+              className="w-3 h-3 md:w-4 md:h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+              />
+            </svg>
+            <span>재고조사</span>
+          </button>
         </div>
 
         {inventory.length === 0 ? (

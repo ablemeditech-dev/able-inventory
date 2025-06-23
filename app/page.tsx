@@ -269,13 +269,15 @@ export default function HomePage() {
             </div>
           </Link>
 
-          <div className="bg-white rounded-lg shadow-sm border border-accent-soft p-6">
-            <h3 className="font-semibold text-text-secondary mb-2">
-              재고 현황
-            </h3>
-            <p className="text-3xl font-bold text-primary">5,678</p>
-            <p className="text-sm text-accent-soft mt-1">정상 재고</p>
-          </div>
+          <Link href="/products" className="block">
+            <div className="bg-white rounded-xl shadow-lg border border-accent-soft p-8 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer group relative">
+              <h3 className="font-bold text-text-secondary mb-3 text-lg">
+                제품 소개
+              </h3>
+              <p className="text-2xl font-bold text-primary mb-1">GUSTA</p>
+              <p className="text-accent-soft">혁신적인 의료기기</p>
+            </div>
+          </Link>
 
           <div className="bg-white rounded-lg shadow-sm border border-accent-soft p-6">
             <h3 className="font-semibold text-text-secondary mb-2">

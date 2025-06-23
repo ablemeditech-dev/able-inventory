@@ -107,7 +107,7 @@ export default function StatisticsPage() {
 
   useEffect(() => {
     fetchStatistics();
-  }, [fetchStatistics]);
+  }, []);
 
   const calculateStatistics = (
     movements: any[],
