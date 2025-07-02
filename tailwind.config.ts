@@ -16,8 +16,8 @@ export default {
           soft: '#EDD9C4', // 보조 강조용 (부드러운 베이지)
         },
         text: {
-          primary: '#FFFFF0', // 메인 텍스트 (헤더 타이틀 등)
-          secondary: '#7A7A7A', // 설명 텍스트 (그레이)
+          primary: '#2D3748', // 메인 텍스트 (어두운 회색)
+          secondary: '#4A5568', // 설명 텍스트 (중간 회색)
         }
       },
     },

@@ -21,7 +21,7 @@ export default function RootLayout({
         <div className="flex flex-col min-h-screen">
           {/* 헤더 - 고정 */}
           <header
-            className="fixed top-0 left-0 right-0 z-50 bg-primary text-text-primary min-h-16 flex items-center justify-between px-4 shadow-lg"
+            className="fixed top-0 left-0 right-0 z-50 bg-primary text-white min-h-16 flex items-center justify-between px-4 shadow-lg"
             style={{
               paddingTop: "calc(env(safe-area-inset-top) + 0.5rem)",
               paddingBottom: "0.5rem",
@@ -31,7 +31,7 @@ export default function RootLayout({
             {/* 왼쪽 - 햄버거 메뉴 */}
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 hover:bg-accent-soft rounded-lg transition-colors"
+              className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
             >
               <svg
                 className="w-6 h-6"
@@ -51,7 +51,7 @@ export default function RootLayout({
             {/* 중앙 - 타이틀 */}
             <Link
               href="/"
-              className="text-lg font-semibold hover:text-accent-light transition-colors"
+              className="text-lg font-semibold hover:text-gray-200 transition-colors"
             >
               ABLE MEDITECH
             </Link>
@@ -61,7 +61,7 @@ export default function RootLayout({
               {/* 설정 아이콘 */}
               <Link
                 href="/settings"
-                className="p-2 hover:bg-accent-soft rounded-lg transition-colors"
+                className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
                 title="설정"
               >
                 <svg
@@ -91,7 +91,7 @@ export default function RootLayout({
                   // 로그아웃 로직 추가 예정
                   console.log("로그아웃");
                 }}
-                className="p-2 hover:bg-accent-soft rounded-lg transition-colors"
+                className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
                 title="로그아웃"
               >
                 <svg

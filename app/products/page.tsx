@@ -270,7 +270,7 @@ export default function ProductsPage() {
                 </h3>
                 <p className="text-gray-600 mb-4">
                   제조사 Demax는 베이징 분사 및 호주 지사를 두고 있는 기업이며,
-                  'Gusta' Balloon Catheter 제품을 유럽(CE) MDR Approval을 받은
+                  &apos;Gusta&apos; Balloon Catheter 제품을 유럽(CE) MDR Approval을 받은
                   제품입니다. 현재 베이징에서 제품 제조공정이 이루어지고
                   있습니다.
                 </p>
@@ -286,7 +286,7 @@ export default function ProductsPage() {
                   {/* 1. 매우 작은 entry profile */}
                   <div className="border-l-4 border-blue-500 pl-4">
                     <h4 className="font-semibold text-lg mb-2">
-                      1. 매우 작은 entry profile (0.016"=0.4mm)
+                      1. 매우 작은 entry profile (0.016&quot;=0.4mm)
                     </h4>
                     <p className="text-gray-600 mb-3">
                       small entry profile은 balloon의 crossability를 높이기
@@ -295,7 +295,7 @@ export default function ProductsPage() {
                     </p>
                     <div className="bg-blue-50 p-4 rounded-lg">
                       <p className="text-sm text-blue-800 font-medium">
-                        ✓ GUSTA(Φ1.25): 0.016" - 경쟁사 대비 가장 작은 entry
+                        ✓ GUSTA(Φ1.25): 0.016&quot; - 경쟁사 대비 가장 작은 entry
                         profile로 우수한 통과성 확보
                       </p>
                     </div>
@@ -354,7 +354,7 @@ export default function ProductsPage() {
             {/* 제품 크기 및 사양 */}
             <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
               <div className="px-6 py-4 bg-gray-50 border-b">
-                <h3 className="text-lg font-semibold">
+                <h3 className="text-lg font-semibold text-primary">
                   제품 크기 및 상세 사양
                 </h3>
               </div>
@@ -367,32 +367,32 @@ export default function ProductsPage() {
                     Non-compliant Balloon Dilatation Catheter
                   </p>
                   <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300 text-sm">
+                    <table className="w-full border-collapse border border-gray-300 text-sm [&_td:not(:first-child)]:text-black [&_td:not(:first-child)]:font-medium [&_td:first-child]:text-black [&_td:first-child]:font-medium [&_td:first-child]:bg-green-50">
                       <thead>
                         <tr className="bg-green-50">
-                          <th className="border border-gray-300 px-3 py-2 text-left font-semibold"></th>
-                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold">
+                          <th className="border border-gray-300 px-3 py-2 text-left font-semibold text-black"></th>
+                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold text-black">
                             6 mm
                           </th>
-                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold">
+                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold text-black">
                             8 mm
                           </th>
-                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold">
+                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold text-black">
                             10 mm
                           </th>
-                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold">
+                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold text-black">
                             12 mm
                           </th>
-                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold">
+                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold text-black">
                             15 mm
                           </th>
-                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold">
+                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold text-black">
                             20 mm
                           </th>
-                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold">
+                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold text-black">
                             25 mm
                           </th>
-                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold">
+                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold text-black">
                             30 mm
                           </th>
                         </tr>
@@ -402,296 +402,154 @@ export default function ProductsPage() {
                           <td className="border border-gray-300 px-3 py-2 font-medium">
                             2.25
                           </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2206 ☐
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs text-black font-medium">
+                            DHC2206
+                          </td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs text-black font-medium">
+                            DHC2208
+                          </td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs text-black font-medium">
+                            DHC2210
+                          </td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs text-black font-medium">
+                            DHC2212
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2208 ☐
+                            DHC2215
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2210 ☐
+                            DHC2220
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2212 ☐
+                            DHC2225
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2215 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2220 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2225 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2230 ☐
+                            DHC2230
                           </td>
                         </tr>
                         <tr className="bg-gray-50">
                           <td className="border border-gray-300 px-3 py-2 font-medium">
                             2.5
                           </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2506 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2508 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2510 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2512 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2515 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2520 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2525 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2530 ☐
-                          </td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC2506</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC2508</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC2510</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC2512</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC2515</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC2520</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC2525</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC2530</td>
                         </tr>
                         <tr>
                           <td className="border border-gray-300 px-3 py-2 font-medium">
                             2.75
                           </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2706 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2708 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2710 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2712 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2715 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2720 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2725 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC2730 ☐
-                          </td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC2706</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC2708</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC2710</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC2712</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC2715</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC2720</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC2725</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC2730</td>
                         </tr>
                         <tr className="bg-gray-50">
                           <td className="border border-gray-300 px-3 py-2 font-medium">
                             3.0
                           </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3006 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3008 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3010 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3012 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3015 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3020 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3025 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3030 ☐
-                          </td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3006</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3008</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3010</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3012</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3015</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3020</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3025</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3030</td>
                         </tr>
                         <tr>
                           <td className="border border-gray-300 px-3 py-2 font-medium">
                             3.25
                           </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3206 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3208 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3210 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3212 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3215 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3220 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3225 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3230 ☐
-                          </td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3206</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3208</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3210</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3212</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3215</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3220</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3225</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3230</td>
                         </tr>
                         <tr className="bg-gray-50">
                           <td className="border border-gray-300 px-3 py-2 font-medium">
                             3.5
                           </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3506 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3508 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3510 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3512 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3515 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3520 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3525 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3530 ☐
-                          </td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3506</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3508</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3510</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3512</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3515</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3520</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3525</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3530</td>
                         </tr>
                         <tr>
                           <td className="border border-gray-300 px-3 py-2 font-medium">
                             3.75
                           </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3706 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3708 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3710 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3712 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3715 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3720 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3725 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC3730 ☐
-                          </td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3706</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3708</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3710</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3712</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3715</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3720</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3725</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC3730</td>
                         </tr>
-                        <tr className="bg-gray-50">
+                        <tr>
                           <td className="border border-gray-300 px-3 py-2 font-medium">
                             4.0
                           </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4006 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4008 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4010 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4012 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4015 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4020 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4025 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4030 ☐
-                          </td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4006</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4008</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4010</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4012</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4015</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4020</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4025</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4030</td>
                         </tr>
                         <tr>
                           <td className="border border-gray-300 px-3 py-2 font-medium">
                             4.25
                           </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4206 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4208 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4210 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4212 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4215 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4220 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4225 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4230 ☐
-                          </td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4206</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4208</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4210</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4212</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4215</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4220</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4225</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4230</td>
                         </tr>
                         <tr className="bg-gray-50">
                           <td className="border border-gray-300 px-3 py-2 font-medium">
                             4.5
                           </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4506 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4508 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4510 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4512 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4515 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4520 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4525 ☐
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DHC4530 ☐
-                          </td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4506</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4508</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4510</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4512</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4515</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4520</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4525</td>
+                          <td className="border border-gray-300 px-2 py-2 text-center text-xs">DHC4530</td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
                 </div>
+
+
 
                 <div className="mb-6">
                   <h4 className="font-semibold mb-4 text-blue-600">
@@ -701,32 +559,32 @@ export default function ProductsPage() {
                     Semi-compliant Balloon Dilatation Catheter
                   </p>
                   <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300 text-sm">
+                    <table className="w-full border-collapse border border-gray-300 text-sm [&_td:not(:first-child)]:text-black [&_td:not(:first-child)]:font-medium [&_td:first-child]:text-black [&_td:first-child]:font-medium [&_td:first-child]:bg-blue-100">
                       <thead>
                         <tr className="bg-blue-100">
-                          <th className="border border-gray-300 px-3 py-2 text-left font-semibold"></th>
-                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold">
+                          <th className="border border-gray-300 px-3 py-2 text-left font-semibold text-black"></th>
+                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold text-black">
                             6mm
                           </th>
-                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold">
+                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold text-black">
                             8mm
                           </th>
-                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold">
+                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold text-black">
                             10mm
                           </th>
-                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold">
+                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold text-black">
                             12mm
                           </th>
-                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold">
+                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold text-black">
                             15mm
                           </th>
-                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold">
+                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold text-black">
                             20mm
                           </th>
-                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold">
+                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold text-black">
                             25mm
                           </th>
-                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold">
+                          <th className="border border-gray-300 px-2 py-2 text-center font-semibold text-black">
                             30mm
                           </th>
                         </tr>
@@ -737,22 +595,22 @@ export default function ProductsPage() {
                             1.25
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1206 ☐
+                            DPC1206
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1208 ☐
+                            DPC1208
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1210 ☐
+                            DPC1210
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1212 ☐
+                            DPC1212
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1215 ☐
+                            DPC1215
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1220 ☐
+                            DPC1220
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
                             -
@@ -766,28 +624,28 @@ export default function ProductsPage() {
                             1.5
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1506 ☐
+                            DPC1506
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1508 ☐
+                            DPC1508
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1510 ☐
+                            DPC1510
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1512 ☐
+                            DPC1512
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1515 ☐
+                            DPC1515
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1520 ☐
+                            DPC1520
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1525 ☐
+                            DPC1525
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1530 ☐
+                            DPC1530
                           </td>
                         </tr>
                         <tr>
@@ -795,28 +653,28 @@ export default function ProductsPage() {
                             1.75
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1706 ☐
+                            DPC1706
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1708 ☐
+                            DPC1708
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1710 ☐
+                            DPC1710
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1712 ☐
+                            DPC1712
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1715 ☐
+                            DPC1715
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1720 ☐
+                            DPC1720
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1725 ☐
+                            DPC1725
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC1730 ☐
+                            DPC1730
                           </td>
                         </tr>
                         <tr className="bg-gray-50">
@@ -824,28 +682,28 @@ export default function ProductsPage() {
                             2.0
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2006 ☐
+                            DPC2006
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2008 ☐
+                            DPC2008
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2010 ☐
+                            DPC2010
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2012 ☐
+                            DPC2012
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2015 ☐
+                            DPC2015
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2020 ☐
+                            DPC2020
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2025 ☐
+                            DPC2025
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2030 ☐
+                            DPC2030
                           </td>
                         </tr>
                         <tr>
@@ -853,28 +711,28 @@ export default function ProductsPage() {
                             2.25
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2206 ☐
+                            DPC2206
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2208 ☐
+                            DPC2208
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2210 ☐
+                            DPC2210
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2212 ☐
+                            DPC2212
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2215 ☐
+                            DPC2215
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2220 ☐
+                            DPC2220
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2225 ☐
+                            DPC2225
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2230 ☐
+                            DPC2230
                           </td>
                         </tr>
                         <tr className="bg-gray-50">
@@ -882,28 +740,28 @@ export default function ProductsPage() {
                             2.5
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2506 ☐
+                            DPC2506
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2508 ☐
+                            DPC2508
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2510 ☐
+                            DPC2510
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2512 ☐
+                            DPC2512
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2515 ☐
+                            DPC2515
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2520 ☐
+                            DPC2520
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2525 ☐
+                            DPC2525
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2530 ☐
+                            DPC2530
                           </td>
                         </tr>
                         <tr>
@@ -911,28 +769,28 @@ export default function ProductsPage() {
                             2.75
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2706 ☐
+                            DPC2706
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2708 ☐
+                            DPC2708
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2710 ☐
+                            DPC2710
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2712 ☐
+                            DPC2712
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2715 ☐
+                            DPC2715
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2720 ☐
+                            DPC2720
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2725 ☐
+                            DPC2725
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC2730 ☐
+                            DPC2730
                           </td>
                         </tr>
                         <tr className="bg-gray-50">
@@ -940,28 +798,28 @@ export default function ProductsPage() {
                             3.0
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3006 ☐
+                            DPC3006
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3008 ☐
+                            DPC3008
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3010 ☐
+                            DPC3010
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3012 ☐
+                            DPC3012
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3015 ☐
+                            DPC3015
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3020 ☐
+                            DPC3020
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3025 ☐
+                            DPC3025
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3030 ☐
+                            DPC3030
                           </td>
                         </tr>
                         <tr>
@@ -969,28 +827,28 @@ export default function ProductsPage() {
                             3.25
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3206 ☐
+                            DPC3206
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
                             -
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3210 ☐
+                            DPC3210
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3212 ☐
+                            DPC3212
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3215 ☐
+                            DPC3215
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3220 ☐
+                            DPC3220
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3225 ☐
+                            DPC3225
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3230 ☐
+                            DPC3230
                           </td>
                         </tr>
                         <tr className="bg-gray-50">
@@ -998,28 +856,28 @@ export default function ProductsPage() {
                             3.5
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3506 ☐
+                            DPC3506
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
                             -
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3510 ☐
+                            DPC3510
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3512 ☐
+                            DPC3512
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3515 ☐
+                            DPC3515
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3520 ☐
+                            DPC3520
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3525 ☐
+                            DPC3525
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3530 ☐
+                            DPC3530
                           </td>
                         </tr>
                         <tr>
@@ -1027,28 +885,28 @@ export default function ProductsPage() {
                             3.75
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3706 ☐
+                            DPC3706
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
                             -
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3710 ☐
+                            DPC3710
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3712 ☐
+                            DPC3712
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3715 ☐
+                            DPC3715
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3720 ☐
+                            DPC3720
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3725 ☐
+                            DPC3725
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC3730 ☐
+                            DPC3730
                           </td>
                         </tr>
                         <tr className="bg-gray-50">
@@ -1056,28 +914,28 @@ export default function ProductsPage() {
                             4.0
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC4006 ☐
+                            DPC4006
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
                             -
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC4010 ☐
+                            DPC4010
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC4012 ☐
+                            DPC4012
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC4015 ☐
+                            DPC4015
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC4020 ☐
+                            DPC4020
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC4025 ☐
+                            DPC4025
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC4030 ☐
+                            DPC4030
                           </td>
                         </tr>
                         <tr>
@@ -1097,10 +955,10 @@ export default function ProductsPage() {
                             -
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC4515 ☐
+                            DPC4515
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC4520 ☐
+                            DPC4520
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
                             -
@@ -1126,10 +984,10 @@ export default function ProductsPage() {
                             -
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC5015 ☐
+                            DPC5015
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
-                            DPC5020 ☐
+                            DPC5020
                           </td>
                           <td className="border border-gray-300 px-2 py-2 text-center text-xs">
                             -
@@ -1269,7 +1127,7 @@ export default function ProductsPage() {
                 <div className="flex items-center mb-4">
                   <DocumentTextIcon className="w-8 h-8 text-red-500 mr-3" />
                   <div>
-                    <h3 className="font-semibold text-lg">GUSTA 특장점</h3>
+                    <h3 className="font-semibold text-lg text-black">GUSTA 특장점</h3>
                     <p className="text-sm text-gray-600">
                       제품의 주요 특장점 및 장점
                     </p>
@@ -1291,7 +1149,7 @@ export default function ProductsPage() {
                 <div className="flex items-center mb-4">
                   <PhotoIcon className="w-8 h-8 text-blue-500 mr-3" />
                   <div>
-                    <h3 className="font-semibold text-lg">제품 브로셔</h3>
+                    <h3 className="font-semibold text-lg text-black">제품 브로셔</h3>
                     <p className="text-sm text-gray-600">
                       상세한 제품 정보 및 이미지
                     </p>
