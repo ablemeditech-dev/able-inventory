@@ -42,7 +42,7 @@ export default function InboundMethodModal({
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center group-hover:bg-accent-soft transition-colors">
                 <svg
-                  className="w-6 h-6 text-text-primary"
+                  className="w-6 h-6 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -94,7 +94,7 @@ export default function InboundMethodModal({
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center group-hover:bg-accent-soft transition-colors">
                 <svg
-                  className="w-6 h-6 text-text-primary"
+                  className="w-6 h-6 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"

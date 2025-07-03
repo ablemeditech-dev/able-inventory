@@ -547,7 +547,7 @@ export default function ManualUsedPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-2 bg-primary text-text-primary rounded-lg hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? "등록 중..." : "사용분 등록"}
               </button>

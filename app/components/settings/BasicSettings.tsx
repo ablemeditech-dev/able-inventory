@@ -69,7 +69,7 @@ export default function BasicSettings() {
               </p>
               <Link
                 href={section.href}
-                className="inline-block px-4 py-2 bg-primary text-text-primary rounded hover:bg-accent-soft transition-colors"
+                className="inline-block px-4 py-2 bg-primary text-white rounded hover:bg-accent-soft transition-colors"
               >
                 {section.buttonText}
               </Link>

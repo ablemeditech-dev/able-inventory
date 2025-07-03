@@ -80,7 +80,7 @@ function InboundDateModal({
           </button>
           <button
             onClick={handleConfirm}
-            className="px-4 py-2 bg-primary text-text-primary rounded-lg hover:bg-accent-soft transition-colors"
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-accent-soft transition-colors"
           >
             확인
           </button>
@@ -459,7 +459,7 @@ export default function ScanInboundPage() {
             <div className="text-center mb-6">
               <div className="w-24 h-24 mx-auto bg-primary rounded-full flex items-center justify-center mb-4">
                 <svg
-                  className="w-12 h-12 text-text-primary"
+                  className="w-12 h-12 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -487,7 +487,7 @@ export default function ScanInboundPage() {
                 <div className="text-center">
                   <button
                     onClick={handleStartScan}
-                    className="px-6 py-3 bg-primary text-text-primary rounded-lg hover:bg-accent-soft transition-colors flex items-center space-x-2 mx-auto shadow-md hover:shadow-lg"
+                    className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-accent-soft transition-colors flex items-center space-x-2 mx-auto shadow-md hover:shadow-lg"
                   >
                     <svg
                       className="w-5 h-5"
@@ -623,7 +623,7 @@ export default function ScanInboundPage() {
                   <button
                     onClick={handleProcessScannedData}
                     disabled={loading}
-                    className="px-6 py-3 bg-primary text-text-primary rounded-lg hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 mx-auto shadow-md hover:shadow-lg"
+                    className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 mx-auto shadow-md hover:shadow-lg"
                   >
                     <svg
                       className="w-5 h-5"
@@ -656,7 +656,7 @@ export default function ScanInboundPage() {
             <div className="text-center mb-6">
               <div className="w-24 h-24 mx-auto bg-primary rounded-full flex items-center justify-center mb-4">
                 <svg
-                  className="w-12 h-12 text-text-primary"
+                  className="w-12 h-12 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -705,7 +705,7 @@ export default function ScanInboundPage() {
               <button
                 onClick={handlePasteSubmit}
                 disabled={loading}
-                className="px-6 py-3 bg-primary text-text-primary rounded-lg hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-md hover:shadow-lg"
+                className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-md hover:shadow-lg"
               >
                 <svg
                   className="w-4 h-4"
@@ -772,25 +772,25 @@ export default function ScanInboundPage() {
                         item.error ? "bg-red-50" : ""
                       }`}
                     >
-                      <td className="border border-accent-soft px-4 py-2 text-sm">
+                      <td className="border border-accent-soft px-4 py-2 text-sm text-gray-900">
                         {index + 1}
                       </td>
-                      <td className="border border-accent-soft px-4 py-2 text-sm font-mono">
+                      <td className="border border-accent-soft px-4 py-2 text-sm font-mono text-gray-900">
                         {item.upn}
                       </td>
                       <td className="border border-accent-soft px-4 py-2 text-sm font-mono font-semibold text-primary">
                         {item.cfn || "-"}
                       </td>
-                      <td className="border border-accent-soft px-4 py-2 text-sm">
+                      <td className="border border-accent-soft px-4 py-2 text-sm text-gray-900">
                         {item.productName || "-"}
                       </td>
-                      <td className="border border-accent-soft px-4 py-2 text-sm">
+                      <td className="border border-accent-soft px-4 py-2 text-sm text-gray-900">
                         {item.clientName || "-"}
                       </td>
-                      <td className="border border-accent-soft px-4 py-2 text-sm font-mono">
+                      <td className="border border-accent-soft px-4 py-2 text-sm font-mono text-gray-900">
                         {item.ubd}
                       </td>
-                      <td className="border border-accent-soft px-4 py-2 text-sm font-mono">
+                      <td className="border border-accent-soft px-4 py-2 text-sm font-mono text-gray-900">
                         {item.lot}
                       </td>
                       <td className="border border-accent-soft px-4 py-2 text-sm">
@@ -877,7 +877,7 @@ export default function ScanInboundPage() {
                 <button
                   onClick={handleInboundRegister}
                   disabled={loading}
-                  className="px-8 py-4 bg-primary text-text-primary rounded-lg hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 mx-auto shadow-md hover:shadow-lg"
+                  className="px-8 py-4 bg-primary text-white rounded-lg hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 mx-auto shadow-md hover:shadow-lg"
                 >
                   <svg
                     className="w-5 h-5"

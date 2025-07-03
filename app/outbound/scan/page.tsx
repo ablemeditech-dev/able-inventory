@@ -665,7 +665,7 @@ export default function ScanOutboundPage() {
                 <div className="text-center">
                   <button
                     onClick={handleStartScan}
-                    className="px-6 py-3 bg-primary text-text-primary rounded-lg hover:bg-accent-soft transition-colors flex items-center space-x-2 mx-auto shadow-md hover:shadow-lg"
+                    className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-accent-soft transition-colors flex items-center space-x-2 mx-auto shadow-md hover:shadow-lg"
                   >
                     <svg
                       className="w-5 h-5"
@@ -801,7 +801,7 @@ export default function ScanOutboundPage() {
                   <button
                     onClick={handleProcessScannedData}
                     disabled={loading}
-                    className="px-6 py-3 bg-primary text-text-primary rounded-lg hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 mx-auto shadow-md hover:shadow-lg"
+                    className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 mx-auto shadow-md hover:shadow-lg"
                   >
                     <svg
                       className="w-5 h-5"
@@ -1064,7 +1064,7 @@ export default function ScanOutboundPage() {
                 <button
                   onClick={handleOutboundRegister}
                   disabled={loading}
-                  className="px-8 py-4 bg-primary text-text-primary rounded-lg hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 mx-auto shadow-md hover:shadow-lg"
+                  className="px-8 py-4 bg-primary text-white rounded-lg hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 mx-auto shadow-md hover:shadow-lg"
                 >
                   <svg
                     className="w-5 h-5"

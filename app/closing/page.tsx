@@ -179,7 +179,7 @@ export default function ClosingPage() {
             onClick={() => {
               router.push("/closing/manual");
             }}
-            className="bg-primary text-text-primary px-4 py-2 rounded-lg hover:bg-accent-soft transition-colors flex items-center space-x-2"
+            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-accent-soft transition-colors flex items-center space-x-2"
           >
             <svg
               className="w-5 h-5"
