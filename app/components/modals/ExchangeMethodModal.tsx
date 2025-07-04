@@ -413,14 +413,14 @@ export default function ExchangeMethodModal({
       const ABLE_WAREHOUSE_ID = "c24e8564-4987-4cfd-bd0b-e9f05a4ab541";
       const selectedItemsData = getSelectedItemsData();
 
-      const outboundMovements = [];
+      const recallMovements = [];
       for (const item of selectedItemsData) {
-        const outboundRecord = {
+        const recallRecord = {
           product_id: item.product_id,
           movement_type: "out",
           movement_reason: "exchange",
-          from_location_id: selectedToLocation,  // 실제 거래처에서 회수
-          to_location_id: ABLE_WAREHOUSE_ID,     // ABLE 중앙창고로
+          from_location_id: ABLE_WAREHOUSE_ID,   // ABLE 중앙창고에서 (재고 감소)
+          to_location_id: selectedToLocation,    // 거래처로 반품 (재고 증가)
           quantity: item.exchangeQuantity,
           lot_number: item.lot_number,
           ubd_date: item.ubd_date,
@@ -430,17 +430,17 @@ export default function ExchangeMethodModal({
         
         console.log("회수 기록 생성:", {
           item_cfn: item.cfn,
-          from_location_id: selectedToLocation,
-          to_location_id: ABLE_WAREHOUSE_ID,
+          from_location_id: ABLE_WAREHOUSE_ID,
+          to_location_id: selectedToLocation,
           movement_type: "out"
         });
         
-        outboundMovements.push(outboundRecord);
+        recallMovements.push(recallRecord);
       }
 
       const { error: outError } = await supabase
         .from("stock_movements")
-        .insert(outboundMovements);
+        .insert(recallMovements);
 
       if (outError) throw outError;
 
