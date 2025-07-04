@@ -214,13 +214,13 @@ export default function AddSupplierPage() {
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-primary text-text-primary rounded-lg hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "저장 중..." : "저장"}
             </button>
             <Link
               href="/settings/supplier/list"
-              className="px-6 py-2 bg-accent-soft text-text-secondary rounded-lg hover:bg-accent-light transition-colors"
+              className="px-6 py-2 bg-accent-soft text-white rounded-lg hover:bg-accent-light transition-colors"
             >
               취소
             </Link>

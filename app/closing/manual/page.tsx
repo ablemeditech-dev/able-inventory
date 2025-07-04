@@ -48,8 +48,16 @@ export default function ManualUsedPage() {
 
   useEffect(() => {
     loadHospitals();
-    loadAvailableStock();
   }, []);
+
+  // 병원 선택이 변경될 때 재고 로드
+  useEffect(() => {
+    if (formData.hospital_id) {
+      loadAvailableStock(formData.hospital_id);
+    } else {
+      setAvailableStock([]);
+    }
+  }, [formData.hospital_id]);
 
   // CFN이 변경될 때 해당 CFN의 LOT 목록 로드
   useEffect(() => {
@@ -83,27 +91,29 @@ export default function ManualUsedPage() {
     }
   };
 
-  const loadAvailableStock = async () => {
+  const loadAvailableStock = async (hospitalId: string) => {
     try {
       setStockLoading(true);
 
-      // stock_movements에서 입고(out, ABLE->병원) 기록 조회 (병원 재고)
+      // stock_movements에서 해당 병원의 입고(out, ABLE->병원) 기록 조회
       const { data: hospitalInboundData, error: hospitalInboundError } =
         await supabase
           .from("stock_movements")
-          .select("product_id, quantity, to_location_id")
+          .select("product_id, quantity")
           .eq("movement_type", "out")
-          .eq("movement_reason", "sale");
+          .eq("movement_reason", "sale")
+          .eq("to_location_id", hospitalId);
 
       if (hospitalInboundError) {
         throw hospitalInboundError;
       }
 
-      // stock_movements에서 사용(usage) 기록 조회
+      // stock_movements에서 해당 병원의 사용(usage) 기록 조회
       const { data: usedData, error: usedError } = await supabase
         .from("stock_movements")
-        .select("product_id, quantity, from_location_id")
-        .eq("movement_reason", "usage");
+        .select("product_id, quantity")
+        .eq("movement_reason", "usage")
+        .eq("from_location_id", hospitalId);
 
       if (usedError) {
         throw usedError;
@@ -135,10 +145,10 @@ export default function ManualUsedPage() {
       // 제품 맵 생성
       const productMap = new Map(products?.map((p) => [p.id, p]) || []);
 
-      // CFN별 재고 계산 (모든 병원 통합)
+      // CFN별 재고 계산 (선택된 병원 기준)
       const stockMap = new Map<string, number>();
 
-      // 병원 입고 수량 더하기
+      // 해당 병원 입고 수량 더하기
       hospitalInboundData?.forEach((record) => {
         const product = productMap.get(record.product_id);
         if (product?.cfn) {
@@ -149,7 +159,7 @@ export default function ManualUsedPage() {
         }
       });
 
-      // 사용 수량 빼기
+      // 해당 병원 사용 수량 빼기
       usedData?.forEach((record) => {
         const product = productMap.get(record.product_id);
         if (product?.cfn) {
@@ -275,10 +285,21 @@ export default function ManualUsedPage() {
     >
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    
+    // 병원 선택이 변경되면 CFN과 LOT 초기화
+    if (name === "hospital_id") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+        cfn: "",
+        lot_number: "",
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -444,7 +465,11 @@ export default function ManualUsedPage() {
               <label className="block text-sm font-medium text-primary mb-2">
                 CFN <span className="text-red-500">*</span>
               </label>
-              {stockLoading ? (
+              {!formData.hospital_id ? (
+                <div className="text-sm text-text-secondary">
+                  먼저 사용병원을 선택해주세요
+                </div>
+              ) : stockLoading ? (
                 <div className="text-sm text-text-secondary">
                   재고 정보 로딩 중...
                 </div>
@@ -459,7 +484,7 @@ export default function ManualUsedPage() {
                   <option value="">CFN을 선택하세요</option>
                   {availableStock.map((stock) => (
                     <option key={stock.cfn} value={stock.cfn}>
-                      {stock.cfn} (총 재고: {stock.total_quantity}개)
+                      {stock.cfn} (재고: {stock.total_quantity}개)
                     </option>
                   ))}
                 </select>

@@ -103,7 +103,7 @@ function OutboundDateModal({
           </button>
           <button
             onClick={handleConfirm}
-            className="px-4 py-2 bg-primary text-text-primary rounded-lg hover:bg-accent-soft transition-colors"
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-accent-soft transition-colors"
           >
             확인
           </button>
@@ -323,7 +323,7 @@ export default function ScanOutboundPage() {
       console.log("제품 IDs:", productIds);
 
       // 재고 계산
-      let stockMap = new Map<string, number>();
+      const stockMap = new Map<string, number>();
 
       if (productIds.length === 0) {
         console.log("제품 ID를 찾을 수 없음");
@@ -451,8 +451,8 @@ export default function ScanOutboundPage() {
       const parsed = parseGS1Barcodes(barcodes);
       const enriched = await enrichWithProductData(parsed);
       setParsedData(enriched);
-    } catch (err: any) {
-      setError(`데이터 처리 실패: ${err.message}`);
+    } catch (err: unknown) {
+      setError(`데이터 처리 실패: ${(err as Error).message}`);
     } finally {
       setLoading(false);
     }
@@ -479,8 +479,8 @@ export default function ScanOutboundPage() {
           timestamp: new Date(),
         }))
       );
-    } catch (err: any) {
-      setError(`데이터 처리 실패: ${err.message}`);
+    } catch (err: unknown) {
+      setError(`데이터 처리 실패: ${(err as Error).message}`);
     } finally {
       setLoading(false);
     }
@@ -506,6 +506,7 @@ export default function ScanOutboundPage() {
 
   const handleHospitalConfirm = async (
     hospitalId: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     hospitalName: string
   ) => {
     setIsHospitalModalOpen(false);
@@ -536,9 +537,9 @@ export default function ScanOutboundPage() {
         const formattedUbd =
           item.ubd.length === 6
             ? `20${item.ubd.substring(0, 2)}-${item.ubd.substring(
-                2,
-                4
-              )}-${item.ubd.substring(4, 6)}`
+              2,
+              4
+            )}-${item.ubd.substring(4, 6)}`
             : item.ubd;
 
         return {
@@ -570,8 +571,8 @@ export default function ScanOutboundPage() {
       setTimeout(() => {
         router.push("/outbound");
       }, 2000);
-    } catch (err: any) {
-      setError(`출고 처리 실패: ${err.message}`);
+    } catch (err: unknown) {
+      setError(`출고 처리 실패: ${(err as Error).message}`);
     } finally {
       setLoading(false);
     }
@@ -596,21 +597,19 @@ export default function ScanOutboundPage() {
           <nav className="flex space-x-8">
             <button
               onClick={() => setActiveTab("realtime")}
-              className={`py-2 px-1 font-medium text-sm ${
-                activeTab === "realtime"
+              className={`py-2 px-1 font-medium text-sm ${activeTab === "realtime"
                   ? "text-primary border-b-2 border-primary"
                   : "text-text-secondary hover:text-primary"
-              }`}
+                }`}
             >
               실시간 스캔
             </button>
             <button
               onClick={() => setActiveTab("paste")}
-              className={`py-2 px-1 font-medium text-sm ${
-                activeTab === "paste"
+              className={`py-2 px-1 font-medium text-sm ${activeTab === "paste"
                   ? "text-primary border-b-2 border-primary"
                   : "text-text-secondary hover:text-primary"
-              }`}
+                }`}
             >
               텍스트 붙여넣기
             </button>
@@ -637,7 +636,7 @@ export default function ScanOutboundPage() {
             <div className="text-center mb-6">
               <div className="w-24 h-24 mx-auto bg-primary rounded-full flex items-center justify-center mb-4">
                 <svg
-                  className="w-12 h-12 text-text-primary"
+                  className="w-12 h-12 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -646,7 +645,7 @@ export default function ScanOutboundPage() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"
+                    d="M8.111 16.404a5.5 5.5 0 0 1 7.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"
                   />
                 </svg>
               </div>
@@ -834,7 +833,7 @@ export default function ScanOutboundPage() {
             <div className="text-center mb-6">
               <div className="w-24 h-24 mx-auto bg-primary rounded-full flex items-center justify-center mb-4">
                 <svg
-                  className="w-12 h-12 text-text-primary"
+                  className="w-12 h-12 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -886,7 +885,7 @@ export default function ScanOutboundPage() {
               <button
                 onClick={handlePasteSubmit}
                 disabled={loading}
-                className="px-6 py-3 bg-primary text-text-primary rounded-lg hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-md hover:shadow-lg"
+                className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-md hover:shadow-lg"
               >
                 <svg
                   className="w-4 h-4"
@@ -952,32 +951,31 @@ export default function ScanOutboundPage() {
                   {parsedData.map((item, index) => (
                     <tr
                       key={index}
-                      className={`hover:bg-accent-light ${
-                        item.error ? "bg-red-50" : ""
-                      }`}
+                      className={`hover:bg-accent-light ${item.error ? "bg-red-50" : ""
+                        }`}
                     >
-                      <td className="border border-accent-soft px-4 py-2 text-sm">
+                      <td className="border border-accent-soft px-4 py-2 text-sm text-gray-900">
                         {index + 1}
                       </td>
-                      <td className="border border-accent-soft px-4 py-2 text-sm font-mono">
+                      <td className="border border-accent-soft px-4 py-2 text-sm font-mono text-gray-900">
                         {item.upn}
                       </td>
                       <td className="border border-accent-soft px-4 py-2 text-sm font-mono font-semibold text-primary">
                         {item.cfn || "-"}
                       </td>
-                      <td className="border border-accent-soft px-4 py-2 text-sm">
+                      <td className="border border-accent-soft px-4 py-2 text-sm text-gray-900">
                         {item.productName || "-"}
                       </td>
-                      <td className="border border-accent-soft px-4 py-2 text-sm">
+                      <td className="border border-accent-soft px-4 py-2 text-sm text-gray-900">
                         {item.clientName || "-"}
                       </td>
-                      <td className="border border-accent-soft px-4 py-2 text-sm font-mono">
+                      <td className="border border-accent-soft px-4 py-2 text-sm font-mono text-gray-900">
                         {item.ubd}
                       </td>
-                      <td className="border border-accent-soft px-4 py-2 text-sm font-mono">
+                      <td className="border border-accent-soft px-4 py-2 text-sm font-mono text-gray-900">
                         {item.lot}
                       </td>
-                      <td className="border border-accent-soft px-4 py-2 text-sm font-mono">
+                      <td className="border border-accent-soft px-4 py-2 text-sm font-mono text-gray-900">
                         {item.availableStock}개
                       </td>
                       <td className="border border-accent-soft px-4 py-2 text-sm">
