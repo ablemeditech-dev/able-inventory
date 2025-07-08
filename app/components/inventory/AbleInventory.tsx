@@ -11,14 +11,103 @@ interface InventoryItem {
   client_name: string;
 }
 
+type SortType = "default" | "numeric";
+
 export default function AbleInventory() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [originalInventory, setOriginalInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
+  const [cfnSortType, setCfnSortType] = useState<SortType>("default");
 
   useEffect(() => {
     fetchAbleInventory();
   }, []);
+
+  // CFN 숫자 정렬 함수
+  const sortByCfnNumeric = (items: InventoryItem[]) => {
+    return [...items].sort((a, b) => {
+      // CFN에서 영문 부분과 숫자 부분 추출 (예: DHC2508 -> 영문: DHC, 숫자: 2508)
+      const extractParts = (cfn: string) => {
+        const match = cfn.match(/^([A-Za-z]+)(\d+)$/);
+        if (!match) return { prefix: cfn, first: 0, second: 0 };
+        
+        const prefix = match[1]; // DHC, DPC 등
+        const numbers = match[2]; // 2508 등
+        
+        if (numbers.length >= 4) {
+          // 4자리 이상인 경우 앞 2자리, 뒤 2자리로 분리
+          const first = parseInt(numbers.slice(0, -2), 10); // 25
+          const second = parseInt(numbers.slice(-2), 10);   // 08
+          return { prefix, first, second };
+        }
+        return { prefix, first: parseInt(numbers, 10), second: 0 };
+      };
+
+      const aParts = extractParts(a.cfn);
+      const bParts = extractParts(b.cfn);
+
+      // 먼저 영문 부분으로 정렬 (DHC, DPC 등)
+      if (aParts.prefix !== bParts.prefix) {
+        return aParts.prefix.localeCompare(bParts.prefix);
+      }
+
+      // 같은 영문 그룹 내에서 뒤 2자리로 먼저 정렬 (08, 12 등) - 사용자 요구사항에 따라
+      if (aParts.second !== bParts.second) {
+        return aParts.second - bParts.second;
+      }
+
+      // 뒤 2자리가 같으면 앞 2자리로 정렬 (25, 27, 30, 35, 40 등)
+      if (aParts.first !== bParts.first) {
+        return aParts.first - bParts.first;
+      }
+      
+      // CFN이 같으면 LOT, UBD 순으로 정렬
+      if (a.lot_number !== b.lot_number) {
+        return a.lot_number.localeCompare(b.lot_number);
+      }
+      return a.ubd_date.localeCompare(b.ubd_date);
+    });
+  };
+
+  // 기본 정렬 함수
+  const sortByDefault = (items: InventoryItem[]) => {
+    return [...items].sort((a, b) => {
+      // CFN에서 영문 부분 추출
+      const getPrefix = (cfn: string) => {
+        const match = cfn.match(/^([A-Za-z]+)/);
+        return match ? match[1] : cfn;
+      };
+
+      const aPrefix = getPrefix(a.cfn);
+      const bPrefix = getPrefix(b.cfn);
+
+      // 먼저 영문 부분으로 정렬 (DHC, DPC 등)
+      if (aPrefix !== bPrefix) {
+        return aPrefix.localeCompare(bPrefix);
+      }
+
+      // 같은 영문 그룹 내에서 CFN 전체로 문자열 정렬
+      if (a.cfn !== b.cfn) return a.cfn.localeCompare(b.cfn);
+      if (a.lot_number !== b.lot_number)
+        return a.lot_number.localeCompare(b.lot_number);
+      return a.ubd_date.localeCompare(b.ubd_date);
+    });
+  };
+
+  // CFN 정렬 토글 핸들러
+  const handleCfnSortToggle = () => {
+    const newSortType = cfnSortType === "default" ? "numeric" : "default";
+    setCfnSortType(newSortType);
+    
+    if (newSortType === "numeric") {
+      const sorted = sortByCfnNumeric(originalInventory);
+      setInventory(sorted);
+    } else {
+      const sorted = sortByDefault(originalInventory);
+      setInventory(sorted);
+    }
+  };
 
   const fetchAbleInventory = async () => {
     try {
@@ -137,17 +226,36 @@ export default function AbleInventory() {
         }
       );
 
-      // 수량이 0보다 큰 항목만 필터링하고 정렬
-      const currentInventory = Array.from(inventoryMap.values())
-        .filter((item) => item.quantity > 0)
-        .sort((a, b) => {
-          if (a.cfn !== b.cfn) return a.cfn.localeCompare(b.cfn);
-          if (a.lot_number !== b.lot_number)
-            return a.lot_number.localeCompare(b.lot_number);
-          return a.ubd_date.localeCompare(b.ubd_date);
-        });
+      // 수량이 0보다 큰 항목만 필터링
+      const filteredInventory = Array.from(inventoryMap.values())
+        .filter((item) => item.quantity > 0);
 
+      // 기본 정렬로 초기 설정 (인라인으로 구현)
+      const currentInventory = [...filteredInventory].sort((a, b) => {
+        // CFN에서 영문 부분 추출
+        const getPrefix = (cfn: string) => {
+          const match = cfn.match(/^([A-Za-z]+)/);
+          return match ? match[1] : cfn;
+        };
+
+        const aPrefix = getPrefix(a.cfn);
+        const bPrefix = getPrefix(b.cfn);
+
+        // 먼저 영문 부분으로 정렬 (DHC, DPC 등)
+        if (aPrefix !== bPrefix) {
+          return aPrefix.localeCompare(bPrefix);
+        }
+
+        // 같은 영문 그룹 내에서 CFN 전체로 문자열 정렬
+        if (a.cfn !== b.cfn) return a.cfn.localeCompare(b.cfn);
+        if (a.lot_number !== b.lot_number)
+          return a.lot_number.localeCompare(b.lot_number);
+        return a.ubd_date.localeCompare(b.ubd_date);
+      });
+      
+      setOriginalInventory(filteredInventory);
       setInventory(currentInventory);
+      setCfnSortType("default");
     } catch {
       setError("재고 정보를 불러오는데 실패했습니다.");
     } finally {
@@ -229,7 +337,16 @@ export default function AbleInventory() {
                     거래처
                   </th>
                   <th className="px-6 py-2 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
-                    CFN
+                    <button
+                      onClick={handleCfnSortToggle}
+                      className="flex flex-col items-start hover:text-primary transition-colors cursor-pointer bg-transparent border-none p-1 -m-1"
+                      title={cfnSortType === "default" ? "숫자 정렬로 변경" : "기본 정렬로 변경"}
+                    >
+                      <span>CFN</span>
+                      <span className="text-xs text-text-secondary lowercase font-normal">
+                        {cfnSortType === "default" ? "diameter" : "length"}
+                      </span>
+                    </button>
                   </th>
                   <th className="px-6 py-2 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                     LOT

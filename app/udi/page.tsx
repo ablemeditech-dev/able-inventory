@@ -40,7 +40,7 @@ export default function UDIPage() {
 
   useEffect(() => {
     fetchUDIRecords();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchUDIRecords = async () => {
     try {
@@ -205,7 +205,7 @@ export default function UDIPage() {
     }
 
     // 선택된 그룹들의 데이터를 엑셀 형식으로 변환
-    const excelData: Record<string, string>[] = [];
+    const excelData: Record<string, string | number>[] = [];
 
     udiRecords.forEach((group) => {
       const groupKey = getGroupKey(group);
@@ -215,7 +215,7 @@ export default function UDIPage() {
           날짜: group.date,
           내용: "출고",
           거래처: group.client_name,
-          총수량: `${group.total_quantity}개`,
+          총수량: group.total_quantity, // 숫자
           CFN: "",
           LOT: "",
           UBD: "",
@@ -261,7 +261,7 @@ export default function UDIPage() {
               UBD: record.ubd_date
                 ? new Date(record.ubd_date).toLocaleDateString("ko-KR")
                 : "-",
-              수량: `${record.quantity}개`,
+              수량: record.quantity, // 숫자
               비고: record.notes || "-",
               "": "", // 빈 칸
               "GS1 UDI": gs1Format,

@@ -87,56 +87,97 @@ export default function ManualOutboundPage() {
     try {
       setStockLoading(true);
 
-      // stock_movements에서 입고(in) 기록 조회
-      const { data: inboundData, error: inboundError } = await supabase
+      // ABLE 중앙창고 ID
+      const ableLocationId = "c24e8564-4987-4cfd-bd0b-e9f05a4ab541";
+
+      // 입고/출고 이력에서 ABLE 창고의 현재 재고 계산 (AbleInventory.tsx와 완전히 동일한 로직)
+      const { data: movements, error: movementsError } = await supabase
         .from("stock_movements")
         .select(
           `
           product_id,
+          lot_number,
+          ubd_date,
           quantity,
-          products!inner(cfn)
+          from_location_id,
+          to_location_id
         `
         )
-        .eq("movement_type", "in");
-
-      if (inboundError) {
-        throw inboundError;
-      }
-
-      // stock_movements에서 출고(out) 기록 조회
-      const { data: outboundData, error: outboundError } = await supabase
-        .from("stock_movements")
-        .select(
-          `
-          product_id,
-          quantity,
-          products!inner(cfn)
-        `
+        .or(
+          `from_location_id.eq.${ableLocationId},to_location_id.eq.${ableLocationId}`
         )
-        .eq("movement_type", "out")
-        .eq("movement_reason", "sale");
+        .order("created_at", { ascending: false });
 
-      if (outboundError) {
-        throw outboundError;
+      if (movementsError) {
+        throw movementsError;
       }
 
-      // CFN별 재고 계산
-      const stockMap = new Map<string, number>();
+      if (!movements || movements.length === 0) {
+        setAvailableStock([]);
+        return;
+      }
 
-      // 입고 수량 더하기
-      inboundData?.forEach((record) => {
-        const cfn = (record.products as { cfn?: string })?.cfn;
-        if (cfn) {
-          stockMap.set(cfn, (stockMap.get(cfn) || 0) + record.quantity);
+      // 제품 ID 목록 추출
+      const productIds = [
+        ...new Set(movements.map((m) => m.product_id).filter(Boolean)),
+      ];
+
+      if (productIds.length === 0) {
+        setAvailableStock([]);
+        return;
+      }
+
+      // 제품 정보 별도 조회
+      const { data: products, error: productsError } = await supabase
+        .from("products")
+        .select("id, cfn, client_id")
+        .in("id", productIds);
+
+      if (productsError) {
+        throw productsError;
+      }
+
+      // 맵으로 변환
+      const productMap = new Map(products?.map((p) => [p.id, p]) || []);
+
+      // CFN-LOT-UBD 조합별 재고 계산 (AbleInventory.tsx와 동일)
+      const inventoryMap = new Map<string, { cfn: string; quantity: number }>();
+
+      movements.forEach((movement) => {
+        const product = productMap.get(movement.product_id);
+        if (!product) return;
+
+        const key = `${product.cfn}-${movement.lot_number}-${movement.ubd_date}`;
+
+        if (!inventoryMap.has(key)) {
+          inventoryMap.set(key, {
+            cfn: product.cfn || "",
+            quantity: 0,
+          });
+        }
+
+        const item = inventoryMap.get(key)!;
+
+        // ABLE로 들어오는 경우 (+), ABLE에서 나가는 경우 (-)
+        if (movement.to_location_id === ableLocationId) {
+          item.quantity += movement.quantity || 0;
+        } else if (movement.from_location_id === ableLocationId) {
+          item.quantity -= movement.quantity || 0;
         }
       });
 
-      // 출고 수량 빼기
-      outboundData?.forEach((record) => {
-        const cfn = (record.products as { cfn?: string })?.cfn;
-        if (cfn) {
-          stockMap.set(cfn, (stockMap.get(cfn) || 0) - record.quantity);
+      // 수량이 0보다 큰 항목만 필터링
+      const positiveInventory = Array.from(inventoryMap.values())
+        .filter((item) => item.quantity > 0);
+
+      // CFN별로 합산
+      const stockMap = new Map<string, number>();
+      positiveInventory.forEach((item) => {
+        const cfn = item.cfn;
+        if (!stockMap.has(cfn)) {
+          stockMap.set(cfn, 0);
         }
+        stockMap.set(cfn, stockMap.get(cfn)! + item.quantity);
       });
 
       // 가용 재고만 필터링 (수량 > 0)
@@ -161,6 +202,9 @@ export default function ManualOutboundPage() {
     try {
       setLotsLoading(true);
 
+      // ABLE 중앙창고 ID
+      const ableLocationId = "c24e8564-4987-4cfd-bd0b-e9f05a4ab541";
+
       // 선택된 CFN의 product_id 조회
       const { data: productData, error: productError } = await supabase
         .from("products")
@@ -170,51 +214,38 @@ export default function ManualOutboundPage() {
 
       if (productError) throw productError;
 
-      // 해당 제품의 입고 기록 조회
-      const { data: inboundLots, error: inboundError } = await supabase
+      // 해당 제품의 ABLE 중앙창고와 관련된 모든 입고/출고 이력 조회
+      const { data: movements, error: movementsError } = await supabase
         .from("stock_movements")
-        .select("lot_number, ubd_date, quantity")
-        .eq("movement_type", "in")
-        .eq("product_id", productData.id);
+        .select("lot_number, ubd_date, quantity, from_location_id, to_location_id")
+        .eq("product_id", productData.id)
+        .or(
+          `from_location_id.eq.${ableLocationId},to_location_id.eq.${ableLocationId}`
+        );
 
-      if (inboundError) throw inboundError;
-
-      // 해당 제품의 출고 기록 조회
-      const { data: outboundLots, error: outboundError } = await supabase
-        .from("stock_movements")
-        .select("lot_number, quantity")
-        .eq("movement_type", "out")
-        .eq("movement_reason", "sale")
-        .eq("product_id", productData.id);
-
-      if (outboundError) throw outboundError;
+      if (movementsError) throw movementsError;
 
       // LOT별 재고 계산
       const lotMap = new Map<string, { ubd_date: string; quantity: number }>();
 
-      // 입고 수량 더하기
-      inboundLots?.forEach((record) => {
+      movements?.forEach((record) => {
         const key = record.lot_number;
-        if (key) {
-          const existing = lotMap.get(key);
+        if (!key) return;
+
+        if (!lotMap.has(key)) {
           lotMap.set(key, {
             ubd_date: record.ubd_date || "",
-            quantity: (existing?.quantity || 0) + record.quantity,
+            quantity: 0,
           });
         }
-      });
 
-      // 출고 수량 빼기
-      outboundLots?.forEach((record) => {
-        const key = record.lot_number;
-        if (key) {
-          const existing = lotMap.get(key);
-          if (existing) {
-            lotMap.set(key, {
-              ...existing,
-              quantity: existing.quantity - record.quantity,
-            });
-          }
+        const existing = lotMap.get(key)!;
+
+        // ABLE로 들어오는 경우 (+), ABLE에서 나가는 경우 (-)
+        if (record.to_location_id === ableLocationId) {
+          existing.quantity += record.quantity;
+        } else if (record.from_location_id === ableLocationId) {
+          existing.quantity -= record.quantity;
         }
       });
 
@@ -437,7 +468,7 @@ export default function ManualOutboundPage() {
                   <option value="">CFN을 선택하세요</option>
                   {availableStock.map((stock) => (
                     <option key={stock.cfn} value={stock.cfn}>
-                      {stock.cfn} (재고: {stock.total_quantity}개)
+                      {stock.cfn} : {stock.total_quantity} EA
                     </option>
                   ))}
                 </select>
@@ -468,11 +499,9 @@ export default function ManualOutboundPage() {
                   <option value="">LOT를 선택하세요</option>
                   {availableLots.map((lot) => (
                     <option key={lot.lot_number} value={lot.lot_number}>
-                      {lot.lot_number} (UBD:{" "}
-                      {lot.ubd_date
+                      {lot.lot_number} ({lot.ubd_date
                         ? new Date(lot.ubd_date).toLocaleDateString("ko-KR")
-                        : "미정"}
-                      , 재고: {lot.available_quantity}개)
+                        : "미정"}) : {lot.available_quantity} EA
                     </option>
                   ))}
                 </select>
