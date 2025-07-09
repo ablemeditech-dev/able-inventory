@@ -279,13 +279,15 @@ export default function HomePage() {
             </div>
           </Link>
 
-          <div className="bg-white rounded-lg shadow-sm border border-accent-soft p-6">
-            <h3 className="font-semibold text-text-secondary mb-2">
-              이번 달 입고
-            </h3>
-            <p className="text-3xl font-bold text-primary">892</p>
-            <p className="text-sm text-accent-soft mt-1">+8% 전월 대비</p>
-          </div>
+          <Link href="/order" className="block">
+            <div className="bg-white rounded-xl shadow-lg border border-accent-soft p-8 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer group relative">
+              <h3 className="font-bold text-text-secondary mb-3 text-lg">
+                오더
+              </h3>
+              <p className="text-2xl font-bold text-primary mb-1">재고 관리</p>
+              <p className="text-accent-soft">전략적 주문 관리</p>
+            </div>
+          </Link>
 
           <div className="bg-white rounded-lg shadow-sm border border-accent-soft p-6">
             <h3 className="font-semibold text-text-secondary mb-2">
