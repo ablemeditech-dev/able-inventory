@@ -200,14 +200,18 @@ export const useOrderData = () => {
             const location = movement.locations;
             if (!location) return;
 
+            // location이 배열인지 객체인지 확인하고 적절히 처리
+            const locationData = Array.isArray(location) ? location[0] : location;
+            if (!locationData) return;
+
             // notes 필드에 "병원:"이 포함된 경우는 병원으로 처리 (타입 안전성 개선)
-            const notes = location.notes || '';
+            const notes = locationData?.notes || '';
             const isHospital = typeof notes === 'string' && notes.includes("병원:");
-            const locationName = location.location_name || '';
-            const isAbleWarehouse = locationName === "ABLE" || location.id === ableLocationId;
+            const locationName = locationData?.location_name || '';
+            const isAbleWarehouse = locationName === "ABLE" || locationData?.id === ableLocationId;
             
             // ABLE 중앙창고나 실제 창고(병원이 아닌)만 제외
-            if (!isHospital && (isAbleWarehouse || location.location_type === "warehouse")) {
+            if (!isHospital && (isAbleWarehouse || locationData?.location_type === "warehouse")) {
               return;
             }
 
@@ -244,18 +248,22 @@ export const useOrderData = () => {
             if (hospital?.locations) {
               const loc = hospital.locations;
               
-              // notes 필드에서 병원명 추출 (예: "병원: 한양대 (담당자: 정미화)" -> "한양대")
-              const notes = loc.notes || '';
-              if (typeof notes === 'string' && notes.includes("병원:")) {
-                const match = notes.match(/병원:\s*([^(]*)/);
-                if (match) {
-                  hospitalName = match[1].trim();
+              // location이 배열인지 객체인지 확인하고 적절히 처리
+              const locData = Array.isArray(loc) ? loc[0] : loc;
+              if (locData) {
+                // notes 필드에서 병원명 추출 (예: "병원: 한양대 (담당자: 정미화)" -> "한양대")
+                const notes = locData?.notes || '';
+                if (typeof notes === 'string' && notes.includes("병원:")) {
+                  const match = notes.match(/병원:\s*([^(]*)/);
+                  if (match) {
+                    hospitalName = match[1].trim();
+                  }
                 }
-              }
-              
-              // notes에서 추출 실패 시 다른 필드 사용
-              if (!hospitalName) {
-                hospitalName = loc.location_name || loc.facility_name || loc.hospital_name || loc.company_name || "병원";
+                
+                // notes에서 추출 실패 시 다른 필드 사용
+                if (!hospitalName) {
+                  hospitalName = locData?.location_name || locData?.facility_name || locData?.hospital_name || locData?.company_name || "병원";
+                }
               }
             }
 
