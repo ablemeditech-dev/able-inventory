@@ -21,22 +21,34 @@ export default function OrderPage() {
     key: 'quantity' | 'usage' | null;
     direction: 'asc' | 'desc';
   }>({ key: null, direction: 'asc' });
+  const [hospitalTopUsage, setHospitalTopUsage] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     fetchOrderData();
   }, []);
 
-  // 상위 30% 사용량 계산 (사용량이 0인 항목 제외)
-  const getTopUsageThreshold = () => {
-    // 사용량이 0보다 큰 항목들만 필터링
+  // Top 5 순위 계산 (사용량이 0인 항목 제외)
+  const getTopFiveRanking = () => {
+    // 사용량이 0보다 큰 항목들만 필터링하고 사용량 순으로 정렬
     const itemsWithUsage = orderItems.filter(item => item.six_months_usage > 0);
     
-    if (itemsWithUsage.length === 0) return 0;
+    if (itemsWithUsage.length === 0) return new Map();
     
     const sortedByUsage = itemsWithUsage.sort((a, b) => b.six_months_usage - a.six_months_usage);
-    const topPercentIndex = Math.floor(sortedByUsage.length * 0.3); // 상위 30%
-    return sortedByUsage[topPercentIndex]?.six_months_usage || 0;
+    
+    // CFN을 키로 하고 순위를 값으로 하는 Map 생성
+    const rankingMap = new Map<string, number>();
+    
+    sortedByUsage.forEach((item, index) => {
+      if (index < 5) { // Top 5까지만
+        rankingMap.set(item.cfn, index + 1);
+      }
+    });
+    
+    return rankingMap;
   };
+
+
 
   // 정렬 함수
   const handleSort = (key: 'quantity' | 'usage') => {
@@ -251,6 +263,102 @@ export default function OrderPage() {
         cfnUsageMap.set(cfn, currentUsage + (movement.quantity || 0));
       });
 
+      // 병원별 CFN 사용량 집계를 위한 별도 조회
+      try {
+        const ableLocationId = "c24e8564-4987-4cfd-bd0b-e9f05a4ab541";
+        
+        // 병원별 사용량 계산
+        const { data: hospitalMovements, error: hospitalError } = await supabase
+          .from("stock_movements")
+          .select(`
+            product_id,
+            quantity,
+            from_location_id,
+            locations!stock_movements_from_location_id_fkey(*)
+          `)
+          .eq("movement_type", "out")
+          .neq("from_location_id", ableLocationId) // ABLE 중앙창고 제외
+          .gte("created_at", sixMonthsAgo.toISOString());
+
+        if (!hospitalError && hospitalMovements) {
+          const hospitalCfnUsage = new Map<string, Map<string, number>>();
+          
+          hospitalMovements.forEach((movement: any) => {
+            const product = productMap.get(movement.product_id);
+            if (!product || !product.cfn) return;
+
+            const location = movement.locations;
+            if (!location) return;
+
+            // notes 필드에 "병원:"이 포함된 경우는 병원으로 처리
+            const isHospital = location.notes && location.notes.includes("병원:");
+            const isAbleWarehouse = location.location_name === "ABLE" || location.id === ableLocationId;
+            
+            // ABLE 중앙창고나 실제 창고(병원이 아닌)만 제외
+            if (!isHospital && (isAbleWarehouse || location.location_type === "warehouse")) {
+              return;
+            }
+
+            const hospitalId = movement.from_location_id;
+            const cfn = product.cfn;
+            const quantity = movement.quantity || 0;
+
+            if (!hospitalCfnUsage.has(hospitalId)) {
+              hospitalCfnUsage.set(hospitalId, new Map());
+            }
+
+            const hospitalMap = hospitalCfnUsage.get(hospitalId)!;
+            const currentUsage = hospitalMap.get(cfn) || 0;
+            hospitalMap.set(cfn, currentUsage + quantity);
+          });
+
+          // 각 병원별 최다 사용 CFN 찾기
+          const topCfnByHospital = new Map<string, string>();
+          hospitalCfnUsage.forEach((cfnUsageMap, hospitalId) => {
+            let maxUsage = 0;
+            let topCfn = "";
+            let hospitalName = "";
+
+            // 해당 병원의 최다 사용 CFN 찾기
+            cfnUsageMap.forEach((usage, cfn) => {
+              if (usage > maxUsage) {
+                maxUsage = usage;
+                topCfn = cfn;
+              }
+            });
+
+            // 병원 이름 찾기 (notes 필드에서 추출)
+            const hospital = hospitalMovements.find((m: any) => m.from_location_id === hospitalId);
+            if (hospital?.locations) {
+              const loc = hospital.locations;
+              
+              // notes 필드에서 병원명 추출 (예: "병원: 한양대 (담당자: 정미화)" -> "한양대")
+              if (loc.notes && loc.notes.includes("병원:")) {
+                const match = loc.notes.match(/병원:\s*([^(]*)/);
+                if (match) {
+                  hospitalName = match[1].trim();
+                }
+              }
+              
+              // notes에서 추출 실패 시 다른 필드 사용
+              if (!hospitalName) {
+                hospitalName = loc.location_name || loc.facility_name || loc.hospital_name || loc.company_name || "병원";
+              }
+            }
+
+            if (topCfn && hospitalName) {
+              topCfnByHospital.set(topCfn, hospitalName);
+            }
+          });
+
+          // 병원별 최다 사용 CFN 정보 저장
+          setHospitalTopUsage(topCfnByHospital);
+        }
+              } catch (hospitalErr) {
+          // 병원별 계산 실패해도 전체 기능은 계속 작동하도록 함
+          setHospitalTopUsage(new Map());
+        }
+
       // 모든 CFN 데이터 생성 (재고가 0인 것도 포함)
       const orderData = Array.from(cfnInventoryMap.values())
         .map(item => ({
@@ -335,7 +443,7 @@ export default function OrderPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="bg-accent-light">
-                      <th className="px-6 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider hidden md:table-cell">
                         거래처
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider">
@@ -363,12 +471,13 @@ export default function OrderPage() {
                   </thead>
                   <tbody className="divide-y divide-accent-light">
                     {orderItems.map((item, index) => {
-                      const topUsageThreshold = getTopUsageThreshold();
-                      const isTopUsage = item.six_months_usage >= topUsageThreshold && item.six_months_usage > 0;
+                      const rankingMap = getTopFiveRanking();
+                      const rank = rankingMap.get(item.cfn);
+                      const topHospital = hospitalTopUsage.get(item.cfn);
                       
                       return (
                         <tr key={item.cfn} className={`hover:bg-accent-light ${item.total_quantity === 0 ? 'bg-red-50' : ''}`}>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap hidden md:table-cell">
                             <div className="text-sm font-medium text-primary">
                               {item.client_name}
                             </div>
@@ -381,19 +490,45 @@ export default function OrderPage() {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className={`text-sm font-medium ${item.total_quantity === 0 ? 'text-red-600' : 'text-text-secondary'}`}>
                               {item.total_quantity.toLocaleString()}개
-                              {item.total_quantity === 0 && (
-                                <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
-                                  재고 부족
-                                </span>
-                              )}
+                              {(() => {
+                                const monthlyAverageUsage = item.six_months_usage / 6;
+                                const isStockOut = item.total_quantity === 0;
+                                
+                                // 3개월치 재고 기준으로 재고 부족 예정 판단
+                                const threeMonthsStock = monthlyAverageUsage * 3;
+                                const isLowStock = item.total_quantity > 0 && 
+                                                   item.total_quantity < threeMonthsStock && 
+                                                   item.six_months_usage > 0 &&
+                                                   monthlyAverageUsage >= 0.1; // 월평균이 너무 작으면 제외
+                                
+                                if (isStockOut) {
+                                  return (
+                                    <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                                      재고 부족
+                                    </span>
+                                  );
+                                } else if (isLowStock) {
+                                  return (
+                                    <span className="ml-2 text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">
+                                      재고 부족 예정
+                                    </span>
+                                  );
+                                }
+                                return null;
+                              })()}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className={`text-sm font-medium ${isTopUsage ? 'text-primary' : 'text-text-secondary'}`}>
-                              {item.six_months_usage.toLocaleString()}개
-                              {isTopUsage && (
-                                <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                  상위 30%
+                            <div className={`text-sm font-medium ${rank ? 'text-primary' : 'text-text-secondary'} flex items-center gap-2`}>
+                              <span>{item.six_months_usage.toLocaleString()}개</span>
+                              {rank && (
+                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                  Top {rank}
+                                </span>
+                              )}
+                              {topHospital && (
+                                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                  {topHospital}
                                 </span>
                               )}
                             </div>

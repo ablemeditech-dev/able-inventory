@@ -374,7 +374,7 @@ export default function StatisticsPage() {
           <div className="flex items-center space-x-2">
             <Link
               href="/statistics/graphs"
-              className="bg-primary text-text-primary px-4 py-2 rounded-lg hover:bg-accent-soft transition-colors"
+              className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-accent-soft transition-colors"
             >
               그래프 보기
             </Link>

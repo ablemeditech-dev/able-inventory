@@ -234,7 +234,7 @@ export default function StatisticsGraphsPage() {
 
             return (
               <div key={index} className="flex items-center space-x-3">
-                <div className="w-20 text-sm text-text-secondary truncate">
+                <div className="w-20 text-sm text-primary truncate">
                   {label}
                 </div>
                 <div className="flex-1 bg-gray-200 rounded-full h-6 relative">
@@ -242,7 +242,7 @@ export default function StatisticsGraphsPage() {
                     className={`h-full rounded-full ${color} transition-all duration-1000 ease-out`}
                     style={{ width: `${percentage}%` }}
                   />
-                  <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-primary">
+                  <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white">
                     {item[dataKey].toLocaleString()}
                   </div>
                 </div>
@@ -259,7 +259,7 @@ export default function StatisticsGraphsPage() {
       <div className="p-6">
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-center items-center py-12">
-            <div className="text-text-secondary">
+            <div className="text-primary">
               그래프 데이터를 불러오는 중...
             </div>
           </div>
@@ -289,14 +289,14 @@ export default function StatisticsGraphsPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold text-primary">그래프 통계</h1>
-            <p className="text-text-secondary mt-1">
+            <p className="text-primary mt-1">
               차트로 보는 재고 관리 현황
             </p>
           </div>
           <div className="flex items-center space-x-2">
             <Link
               href="/statistics"
-              className="px-4 py-2 bg-accent-soft text-text-secondary rounded-lg hover:bg-accent-light transition-colors"
+              className="px-4 py-2 bg-accent-soft text-primary rounded-lg hover:bg-accent-light transition-colors"
             >
               ← 돌아가기
             </Link>
@@ -316,7 +316,7 @@ export default function StatisticsGraphsPage() {
               onClick={() => setSelectedGraph(tab.key)}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 selectedGraph === tab.key
-                  ? "bg-primary text-text-primary shadow-sm"
+                  ? "bg-primary text-white shadow-sm"
                   : "text-text-secondary hover:text-primary"
               }`}
             >
@@ -343,10 +343,10 @@ export default function StatisticsGraphsPage() {
                     </div>
                     <div className="grid grid-cols-3 gap-4">
                       <div className="space-y-1">
-                        <div className="text-xs text-text-secondary">입고</div>
-                        <div className="bg-blue-200 rounded-full h-6 relative">
+                        <div className="text-xs text-primary">입고</div>
+                        <div className="bg-primary/10 rounded-full h-6 relative">
                           <div
-                            className="h-full bg-blue-500 rounded-full transition-all duration-1000"
+                            className="h-full bg-primary rounded-full transition-all duration-1000"
                             style={{
                               width: `${
                                 (item.inbound /
@@ -357,16 +357,16 @@ export default function StatisticsGraphsPage() {
                               }%`,
                             }}
                           />
-                          <div className="absolute inset-0 flex items-center justify-center text-xs font-medium">
+                          <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white">
                             {item.inbound}
                           </div>
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <div className="text-xs text-text-secondary">출고</div>
-                        <div className="bg-orange-200 rounded-full h-6 relative">
+                        <div className="text-xs text-primary">출고</div>
+                        <div className="bg-accent-soft/40 rounded-full h-6 relative">
                           <div
-                            className="h-full bg-orange-500 rounded-full transition-all duration-1000"
+                            className="h-full bg-accent-soft rounded-full transition-all duration-1000"
                             style={{
                               width: `${
                                 (item.outbound /
@@ -377,16 +377,16 @@ export default function StatisticsGraphsPage() {
                               }%`,
                             }}
                           />
-                          <div className="absolute inset-0 flex items-center justify-center text-xs font-medium">
+                          <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white">
                             {item.outbound}
                           </div>
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <div className="text-xs text-text-secondary">사용</div>
-                        <div className="bg-red-200 rounded-full h-6 relative">
+                        <div className="text-xs text-primary">사용</div>
+                        <div className="bg-gray-200 rounded-full h-6 relative">
                           <div
-                            className="h-full bg-red-500 rounded-full transition-all duration-1000"
+                            className="h-full bg-gray-600 rounded-full transition-all duration-1000"
                             style={{
                               width: `${
                                 (item.usage /
@@ -397,7 +397,7 @@ export default function StatisticsGraphsPage() {
                               }%`,
                             }}
                           />
-                          <div className="absolute inset-0 flex items-center justify-center text-xs font-medium">
+                          <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white">
                             {item.usage}
                           </div>
                         </div>
@@ -414,7 +414,7 @@ export default function StatisticsGraphsPage() {
               data.hospitalStats,
               "totalUsage",
               "병원별 사용량",
-              "bg-green-500"
+              "bg-primary"
             )}
 
           {selectedGraph === "cfn-stock" &&
@@ -430,7 +430,7 @@ export default function StatisticsGraphsPage() {
               data.topCFNs,
               "usageCount",
               "CFN별 사용량",
-              "bg-purple-500"
+              "bg-accent-soft"
             )}
         </div>
       </div>
