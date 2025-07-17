@@ -212,7 +212,7 @@ export default function ProductsListPage() {
       <ProductDetailModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        products={selectedProducts}
+        products={selectedProducts as any}
         cfn={selectedCfn}
       />
     </div>
