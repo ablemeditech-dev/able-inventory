@@ -203,7 +203,7 @@ export default function HospitalInventory() {
             columns={columns}
             data={inventory}
             loading={inventoryLoading}
-            error={inventoryError}
+            error={inventoryError || undefined}
             emptyMessage={!hasInventory() ? "현재 재고가 없습니다." : "검색 결과가 없습니다."}
             onRetry={refetch}
           />
