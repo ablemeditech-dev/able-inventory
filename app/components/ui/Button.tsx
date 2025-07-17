@@ -130,9 +130,9 @@ export const ButtonGroup: React.FC<{
         const isFirst = index === 0;
         const isLast = index === React.Children.count(children) - 1;
         
-        return React.cloneElement(child, {
+        return React.cloneElement(child as React.ReactElement<any>, {
           className: cn(
-            child.props.className,
+            (child.props as any).className,
             !isFirst && !isLast && 'rounded-none border-l-0',
             isFirst && 'rounded-r-none',
             isLast && 'rounded-l-none border-l-0'
