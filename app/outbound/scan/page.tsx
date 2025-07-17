@@ -8,6 +8,7 @@ import {
   getTestBarcodeData,
 } from "../../../lib/barcodeParser";
 import { supabase } from "../../../lib/supabase";
+import Alert from "../../components/ui/Alert";
 
 interface ScannedItem {
   id: string;
@@ -617,17 +618,13 @@ export default function ScanOutboundPage() {
         </div>
 
         {/* 에러 메시지 */}
-        {error && (
-          <div className="mb-4 p-4 bg-red-100 border border-red-300 rounded-lg">
-            <p className="text-red-700 whitespace-pre-line">{error}</p>
-          </div>
-        )}
+          {error && (
+            <Alert type="error" message={error} />
+          )}
 
         {/* 성공 메시지 */}
         {success && (
-          <div className="mb-4 p-4 bg-green-100 border border-green-300 rounded-lg">
-            <p className="text-green-700">{success}</p>
-          </div>
+          <Alert type="success" message={success} />
         )}
 
         {/* 실시간 스캔 탭 */}

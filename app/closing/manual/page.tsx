@@ -1,591 +1,395 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "../../../lib/supabase";
+import Button, { LinkButton } from "../../components/ui/Button";
+import Alert from "../../components/ui/Alert";
+import ManualPageLayout from "../../components/layout/ManualPageLayout";
 
 interface Hospital {
   id: string;
   hospital_name: string;
-  hospital_code?: string;
 }
 
-interface AvailableStock {
+interface Product {
+  id: string;
   cfn: string;
-  total_quantity: number;
+  product_name: string;
+  category: string;
+  client_name: string;
 }
 
-interface LotInfo {
+interface InventoryItem {
+  product_id: string;
+  cfn: string;
+  description: string;
   lot_number: string;
   ubd_date: string;
-  available_quantity: number;
+  quantity: number;
 }
 
-export default function ManualUsedPage() {
+export default function ManualClosingPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [hospitalsLoading, setHospitalsLoading] = useState(true);
-  const [stockLoading, setStockLoading] = useState(true);
-  const [lotsLoading, setLotsLoading] = useState(false);
+  const [inventoryLoading, setInventoryLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
-  // 데이터 상태
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
-  const [availableStock, setAvailableStock] = useState<AvailableStock[]>([]);
-  const [availableLots, setAvailableLots] = useState<LotInfo[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
 
-  // 폼 데이터 상태
   const [formData, setFormData] = useState({
-    used_date: new Date().toISOString().split("T")[0],
     hospital_id: "",
+    product_id: "",
     cfn: "",
     lot_number: "",
+    ubd_date: "",
     quantity: "",
     notes: "",
   });
 
+  // 병원 목록 로드
   useEffect(() => {
     loadHospitals();
   }, []);
 
-  // 병원 선택이 변경될 때 재고 로드
+  // 병원 선택 시 해당 병원의 재고 로드
   useEffect(() => {
     if (formData.hospital_id) {
-      loadAvailableStock(formData.hospital_id);
+      loadHospitalInventory(formData.hospital_id);
     } else {
-      setAvailableStock([]);
+      setInventory([]);
     }
   }, [formData.hospital_id]);
 
-  // CFN이 변경될 때 해당 CFN의 LOT 목록 로드
-  useEffect(() => {
-    if (formData.cfn && formData.hospital_id) {
-      loadAvailableLots(formData.cfn, formData.hospital_id);
-    } else {
-      setAvailableLots([]);
-    }
-    // CFN이 변경되면 LOT 선택 초기화
-    setFormData((prev) => ({ ...prev, lot_number: "" }));
-  }, [formData.cfn, formData.hospital_id]);
-
   const loadHospitals = async () => {
     try {
-      setHospitalsLoading(true);
-
       const { data, error } = await supabase
         .from("hospitals")
-        .select("id, hospital_name, hospital_code")
+        .select("id, hospital_name")
         .order("hospital_name");
 
-      if (error) {
-        throw error;
-      }
-
+      if (error) throw error;
       setHospitals(data || []);
-    } catch {
-      setError("병원 목록을 불러오는데 실패했습니다. 다시 시도해주세요.");
+    } catch (err) {
+      console.error("병원 로드 실패:", err);
+      setError("병원 목록을 불러오는데 실패했습니다.");
     } finally {
       setHospitalsLoading(false);
     }
   };
 
-  const loadAvailableStock = async (hospitalId: string) => {
+  const loadHospitalInventory = async (hospitalId: string) => {
+    setInventoryLoading(true);
     try {
-      setStockLoading(true);
-
-      // stock_movements에서 해당 병원의 입고(out, ABLE->병원) 기록 조회
-      const { data: hospitalInboundData, error: hospitalInboundError } =
-        await supabase
-          .from("stock_movements")
-          .select("product_id, quantity")
-          .eq("movement_type", "out")
-          .eq("movement_reason", "sale")
-          .eq("to_location_id", hospitalId);
-
-      if (hospitalInboundError) {
-        throw hospitalInboundError;
-      }
-
-      // stock_movements에서 해당 병원의 사용(usage) 기록 조회
-      const { data: usedData, error: usedError } = await supabase
+      // 병원 ID를 직접 location_id로 사용하여 재고 조회
+      const { data, error } = await supabase
         .from("stock_movements")
-        .select("product_id, quantity")
-        .eq("movement_reason", "usage")
-        .eq("from_location_id", hospitalId);
+        .select(`
+          product_id,
+          lot_number,
+          ubd_date,
+          quantity,
+          movement_type,
+          from_location_id,
+          to_location_id,
+          products!inner(cfn, description)
+        `)
+        .or(`from_location_id.eq.${hospitalId},to_location_id.eq.${hospitalId}`)
+        .order("ubd_date");
 
-      if (usedError) {
-        throw usedError;
-      }
+      if (error) throw error;
 
-      // 제품 ID 목록 추출
-      const allProductIds = [
-        ...new Set([
-          ...(hospitalInboundData?.map((r) => r.product_id) || []),
-          ...(usedData?.map((r) => r.product_id) || []),
-        ]),
-      ];
-
-      if (allProductIds.length === 0) {
-        setAvailableStock([]);
-        return;
-      }
-
-      // 제품 정보 별도 조회
-      const { data: products, error: productsError } = await supabase
-        .from("products")
-        .select("id, cfn")
-        .in("id", allProductIds);
-
-      if (productsError) {
-        throw productsError;
-      }
-
-      // 제품 맵 생성
-      const productMap = new Map(products?.map((p) => [p.id, p]) || []);
-
-      // CFN별 재고 계산 (선택된 병원 기준)
-      const stockMap = new Map<string, number>();
-
-      // 해당 병원 입고 수량 더하기
-      hospitalInboundData?.forEach((record) => {
-        const product = productMap.get(record.product_id);
-        if (product?.cfn) {
-          stockMap.set(
-            product.cfn,
-            (stockMap.get(product.cfn) || 0) + record.quantity
-          );
+      // LOT별로 재고 계산 (입고량 - 출고량)
+      const inventoryMap = new Map<string, InventoryItem>();
+      
+      data?.forEach(item => {
+        const key = `${item.products.cfn}-${item.lot_number}`;
+        
+        if (!inventoryMap.has(key)) {
+          inventoryMap.set(key, {
+            product_id: item.product_id,
+            cfn: item.products.cfn,
+            description: item.products.description,
+            lot_number: item.lot_number,
+            ubd_date: item.ubd_date,
+            quantity: 0
+          });
+        }
+        
+        const inventoryItem = inventoryMap.get(key)!;
+        
+        // 해당 병원으로 들어오는 것은 입고 (+)
+        if (item.to_location_id === hospitalId) {
+          inventoryItem.quantity += item.quantity;
+        }
+        // 해당 병원에서 나가는 것은 출고 (-)
+        else if (item.from_location_id === hospitalId) {
+          inventoryItem.quantity -= item.quantity;
+        }
+        
+        // 더 빠른 UBD 날짜로 업데이트
+        if (new Date(item.ubd_date) < new Date(inventoryItem.ubd_date)) {
+          inventoryItem.ubd_date = item.ubd_date;
         }
       });
 
-      // 해당 병원 사용 수량 빼기
-      usedData?.forEach((record) => {
-        const product = productMap.get(record.product_id);
-        if (product?.cfn) {
-          stockMap.set(
-            product.cfn,
-            (stockMap.get(product.cfn) || 0) - record.quantity
-          );
-        }
-      });
+      // 수량이 0보다 큰 재고만 필터링하고 CFN순 정렬
+      const inventoryData = Array.from(inventoryMap.values())
+        .filter(item => item.quantity > 0)
+        .sort((a, b) => a.cfn.localeCompare(b.cfn));
 
-      // 가용 재고만 필터링 (수량 > 0)
-      const availableStockArray: AvailableStock[] = [];
-      stockMap.forEach((quantity, cfn) => {
-        if (quantity > 0) {
-          availableStockArray.push({ cfn, total_quantity: quantity });
-        }
-      });
-
-      // CFN 순으로 정렬
-      availableStockArray.sort((a, b) => a.cfn.localeCompare(b.cfn));
-      setAvailableStock(availableStockArray);
-    } catch {
-      setError("재고 정보를 불러오는데 실패했습니다. 다시 시도해주세요.");
+      setInventory(inventoryData);
+    } catch (err) {
+      console.error("재고 로드 실패:", err);
+      setError("재고 정보를 불러오는데 실패했습니다.");
     } finally {
-      setStockLoading(false);
+      setInventoryLoading(false);
     }
   };
 
-  const loadAvailableLots = async (cfn: string, hospitalId: string) => {
-    try {
-      setLotsLoading(true);
-
-      // 선택된 CFN의 product_id 조회
-      const { data: productData, error: productError } = await supabase
-        .from("products")
-        .select("id")
-        .eq("cfn", cfn)
-        .single();
-
-      if (productError) throw productError;
-
-      // 해당 병원의 해당 제품 입고 기록 조회
-      const { data: hospitalInboundLots, error: hospitalInboundError } =
-        await supabase
-          .from("stock_movements")
-          .select("lot_number, ubd_date, quantity")
-          .eq("movement_type", "out")
-          .eq("movement_reason", "sale")
-          .eq("product_id", productData.id)
-          .eq("to_location_id", hospitalId);
-
-      if (hospitalInboundError) throw hospitalInboundError;
-
-      // 해당 병원의 해당 제품 사용 기록 조회
-      const { data: usedLots, error: usedError } = await supabase
-        .from("stock_movements")
-        .select("lot_number, quantity")
-        .eq("movement_reason", "usage")
-        .eq("product_id", productData.id)
-        .eq("from_location_id", hospitalId);
-
-      if (usedError) throw usedError;
-
-      // LOT별 재고 계산
-      const lotMap = new Map<string, { ubd_date: string; quantity: number }>();
-
-      // 병원 입고 수량 더하기
-      hospitalInboundLots?.forEach((record) => {
-        const key = record.lot_number;
-        if (key) {
-          const existing = lotMap.get(key);
-          lotMap.set(key, {
-            ubd_date: record.ubd_date || "",
-            quantity: (existing?.quantity || 0) + record.quantity,
-          });
-        }
-      });
-
-      // 사용 수량 빼기
-      usedLots?.forEach((record) => {
-        const key = record.lot_number;
-        if (key) {
-          const existing = lotMap.get(key);
-          if (existing) {
-            lotMap.set(key, {
-              ...existing,
-              quantity: existing.quantity - record.quantity,
-            });
-          }
-        }
-      });
-
-      // 가용 재고만 필터링 (수량 > 0)
-      const availableLotsArray: LotInfo[] = [];
-      lotMap.forEach((info, lotNumber) => {
-        if (info.quantity > 0) {
-          availableLotsArray.push({
-            lot_number: lotNumber,
-            ubd_date: info.ubd_date,
-            available_quantity: info.quantity,
-          });
-        }
-      });
-
-      // UBD 날짜 순으로 정렬 (빠른 날짜부터)
-      availableLotsArray.sort((a, b) => {
-        if (!a.ubd_date) return 1;
-        if (!b.ubd_date) return -1;
-        return new Date(a.ubd_date).getTime() - new Date(b.ubd_date).getTime();
-      });
-
-      setAvailableLots(availableLotsArray);
-    } catch {
-      setError("LOT 정보를 불러오는데 실패했습니다.");
-    } finally {
-      setLotsLoading(false);
-    }
-  };
-
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    
-    // 병원 선택이 변경되면 CFN과 LOT 초기화
-    if (name === "hospital_id") {
-      setFormData((prev) => ({
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleCfnSelect = (value: string) => {
+    if (value) {
+      const [cfn, lot_number, ubd_date, product_id] = value.split('|');
+      setFormData(prev => ({
         ...prev,
-        [name]: value,
-        cfn: "",
-        lot_number: "",
+        cfn,
+        lot_number,
+        ubd_date,
+        product_id
       }));
     } else {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
-        [name]: value,
+        cfn: "",
+        lot_number: "",
+        ubd_date: "",
+        product_id: ""
       }));
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // 필수 필드 검증
-    if (!formData.hospital_id) {
-      setError("사용병원을 선택해주세요.");
-      return;
-    }
-    if (!formData.cfn) {
-      setError("CFN을 선택해주세요.");
-      return;
-    }
-    if (!formData.lot_number) {
-      setError("LOT를 선택해주세요.");
-      return;
-    }
-    if (!formData.quantity || parseInt(formData.quantity) <= 0) {
-      setError("올바른 수량을 입력해주세요.");
-      return;
-    }
-
-    // 선택된 LOT의 가용 수량 확인
-    const selectedLot = availableLots.find(
-      (lot) => lot.lot_number === formData.lot_number
-    );
-    if (!selectedLot) {
-      setError("선택된 LOT 정보를 찾을 수 없습니다.");
-      return;
-    }
-
-    const requestedQuantity = parseInt(formData.quantity);
-    if (requestedQuantity > selectedLot.available_quantity) {
-      setError(
-        `요청 수량(${requestedQuantity})이 가용 재고(${selectedLot.available_quantity})를 초과합니다.`
-      );
-      return;
-    }
+    setLoading(true);
+    setError("");
+    setSuccess("");
 
     try {
-      setLoading(true);
-      setError("");
-
-      // CFN으로 product_id 조회
-      const { data: productData, error: productError } = await supabase
-        .from("products")
-        .select("id")
-        .eq("cfn", formData.cfn)
-        .single();
-
-      if (productError) throw productError;
-
-      // stock_movements에 사용 기록 추가
+      // 재고 이동 기록 등록 (병원 ID를 직접 location_id로 사용)
       const { error: insertError } = await supabase
         .from("stock_movements")
-        .insert([
-          {
-            product_id: productData.id,
-            movement_type: "out",
-            movement_reason: "usage",
-            from_location_id: formData.hospital_id,
-            to_location_id: null,
-            quantity: requestedQuantity,
-            lot_number: formData.lot_number,
-            ubd_date: selectedLot.ubd_date,
-            inbound_date: formData.used_date,
-            created_at: new Date().toISOString(),
-            notes: formData.notes || null,
-          },
-        ]);
+        .insert({
+          product_id: formData.product_id,
+          lot_number: formData.lot_number,
+          ubd_date: formData.ubd_date,
+          quantity: parseInt(formData.quantity),
+          movement_type: "out",
+          movement_reason: "manual_used",
+          from_location_id: formData.hospital_id, // 병원 ID를 직접 사용
+          to_location_id: null,
+          notes: formData.notes || null,
+          created_at: new Date().toISOString(),
+        });
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        throw insertError;
+      }
 
-      setSuccess("사용 기록이 성공적으로 등록되었습니다.");
-
-      // 성공 후 사용기록 목록으로 이동
+      setSuccess("소모 등록이 완료되었습니다.");
+      
+      // 3초 후 목록 페이지로 이동
       setTimeout(() => {
         router.push("/closing");
-      }, 1500);
-    } catch {
-      setError("사용 기록 등록에 실패했습니다. 다시 시도해주세요.");
+      }, 3000);
+
+    } catch (err) {
+      console.error("등록 실패:", err);
+      setError(err instanceof Error ? err.message : "등록에 실패했습니다.");
     } finally {
       setLoading(false);
     }
   };
 
+  const selectedInventoryItem = inventory.find(
+    item => `${item.cfn}|${item.lot_number}|${item.ubd_date}|${item.product_id}` === 
+           `${formData.cfn}|${formData.lot_number}|${formData.ubd_date}|${formData.product_id}`
+  );
+
   return (
-    <div className="p-6">
-      <div className="max-w-2xl mx-auto">
-        {/* 헤더 */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-primary">사용분 등록</h1>
+    <ManualPageLayout title="수동 소모 등록" backHref="/closing" backLabel="목록으로">
+      {/* 에러 메시지 */}
+      {error && (
+        <Alert 
+          type="error" 
+          message={error} 
+          className="mb-4"
+        />
+      )}
+
+      {/* 성공 메시지 */}
+      {success && (
+        <Alert 
+          type="success" 
+          message={success} 
+          className="mb-4"
+        />
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* 병원 선택 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            병원 선택 <span className="text-red-500">*</span>
+          </label>
+          {hospitalsLoading ? (
+            <div className="text-sm text-text-secondary">
+              병원 목록 로딩 중...
+            </div>
+          ) : (
+            <select
+              name="hospital_id"
+              value={formData.hospital_id}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
+              required
+            >
+              <option value="">병원을 선택하세요</option>
+              {hospitals.map((hospital) => (
+                <option key={hospital.id} value={hospital.id}>
+                  {hospital.hospital_name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        {/* CFN 선택 */}
+        {formData.hospital_id && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              CFN <span className="text-red-500">*</span>
+            </label>
+            {inventoryLoading ? (
+              <div className="text-sm text-text-secondary">
+                재고 정보 로딩 중...
+              </div>
+            ) : inventory.length > 0 ? (
+              <select
+                value={formData.cfn && formData.lot_number && formData.ubd_date && formData.product_id ? 
+                       `${formData.cfn}|${formData.lot_number}|${formData.ubd_date}|${formData.product_id}` : ''}
+                onChange={(e) => handleCfnSelect(e.target.value)}
+                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
+                required
+              >
+                <option value="">CFN을 선택하세요</option>
+                {inventory.map((item, index) => (
+                  <option key={index} value={`${item.cfn}|${item.lot_number}|${item.ubd_date}|${item.product_id}`}>
+                    {item.cfn} (LOT: {item.lot_number}, UBD: {new Date(item.ubd_date).toLocaleDateString()}) - 수량: {item.quantity}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="text-sm text-text-secondary">
+                선택한 병원에 재고가 없습니다.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 선택된 재고 정보 */}
+        {selectedInventoryItem && (
+          <div>
+            <div className="bg-accent-light p-4 rounded-lg">
+              <h3 className="font-medium text-gray-900 mb-2">선택된 재고 정보</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <span className="font-medium text-gray-700">CFN:</span>
+                  <span className="ml-2 text-gray-900">{selectedInventoryItem.cfn}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">LOT:</span>
+                  <span className="ml-2 text-gray-900">{selectedInventoryItem.lot_number}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">UBD:</span>
+                  <span className="ml-2 text-gray-900">{new Date(selectedInventoryItem.ubd_date).toLocaleDateString()}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">현재 수량:</span>
+                  <span className="ml-2 text-gray-900">{selectedInventoryItem.quantity}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">제품명:</span>
+                  <span className="ml-2 text-gray-900">{selectedInventoryItem.description}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 소모 수량 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            소모 수량 <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="number"
+            name="quantity"
+            value={formData.quantity}
+            onChange={handleChange}
+            min="1"
+            max={selectedInventoryItem?.quantity || undefined}
+            className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
+            placeholder="소모된 수량을 입력하세요"
+            required
+          />
+          {selectedInventoryItem && (
+            <div className="text-sm text-text-secondary mt-1">
+              최대 소모 가능 수량: {selectedInventoryItem.quantity}
+            </div>
+          )}
+        </div>
+
+        {/* 메모 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            메모
+          </label>
+          <textarea
+            name="notes"
+            value={formData.notes}
+            onChange={handleChange}
+            rows={3}
+            className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
+            placeholder="추가 메모사항을 입력하세요"
+          />
+        </div>
+
+        {/* 제출 버튼 */}
+        <div className="flex gap-4 pt-4">
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {loading ? "등록 중..." : "등록"}
+          </button>
           <Link
             href="/closing"
-            className="px-4 py-2 bg-accent-soft text-text-secondary rounded-lg hover:bg-accent-light transition-colors"
+            className="px-6 py-2 bg-accent-soft text-text-secondary rounded-lg hover:bg-accent-light transition-colors"
           >
-            ← 돌아가기
+            취소
           </Link>
         </div>
-
-        {/* 에러 메시지 */}
-        {error && (
-          <div className="mb-4 p-4 bg-red-100 border border-red-300 rounded-lg">
-            <p className="text-red-700">{error}</p>
-          </div>
-        )}
-
-        {/* 성공 메시지 */}
-        {success && (
-          <div className="mb-4 p-4 bg-green-100 border border-green-300 rounded-lg">
-            <p className="text-green-700">{success}</p>
-          </div>
-        )}
-
-        {/* 폼 */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-accent-soft">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* 사용일자 */}
-            <div>
-              <label className="block text-sm font-medium text-primary mb-2">
-                사용일자 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                name="used_date"
-                value={formData.used_date}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
-                required
-              />
-            </div>
-
-            {/* 사용병원 */}
-            <div>
-              <label className="block text-sm font-medium text-primary mb-2">
-                사용병원 <span className="text-red-500">*</span>
-              </label>
-              {hospitalsLoading ? (
-                <div className="text-sm text-text-secondary">
-                  병원 목록 로딩 중...
-                </div>
-              ) : (
-                <select
-                  name="hospital_id"
-                  value={formData.hospital_id}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary bg-white text-gray-900"
-                  required
-                >
-                  <option value="">사용병원을 선택하세요</option>
-                  {hospitals.map((hospital) => (
-                    <option key={hospital.id} value={hospital.id}>
-                      {hospital.hospital_name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            {/* CFN */}
-            <div>
-              <label className="block text-sm font-medium text-primary mb-2">
-                CFN <span className="text-red-500">*</span>
-              </label>
-              {!formData.hospital_id ? (
-                <div className="text-sm text-text-secondary">
-                  먼저 사용병원을 선택해주세요
-                </div>
-              ) : stockLoading ? (
-                <div className="text-sm text-text-secondary">
-                  재고 정보 로딩 중...
-                </div>
-              ) : (
-                <select
-                  name="cfn"
-                  value={formData.cfn}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary bg-white text-gray-900"
-                  required
-                >
-                  <option value="">CFN을 선택하세요</option>
-                  {availableStock.map((stock) => (
-                    <option key={stock.cfn} value={stock.cfn}>
-                      {stock.cfn} (재고: {stock.total_quantity}개)
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            {/* LOT */}
-            <div>
-              <label className="block text-sm font-medium text-primary mb-2">
-                LOT <span className="text-red-500">*</span>
-              </label>
-              {!formData.cfn || !formData.hospital_id ? (
-                <div className="text-sm text-text-secondary">
-                  먼저 사용병원과 CFN을 선택해주세요
-                </div>
-              ) : lotsLoading ? (
-                <div className="text-sm text-text-secondary">
-                  LOT 정보 로딩 중...
-                </div>
-              ) : (
-                <select
-                  name="lot_number"
-                  value={formData.lot_number}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary bg-white text-gray-900"
-                  required
-                >
-                  <option value="">LOT를 선택하세요</option>
-                  {availableLots.map((lot) => (
-                    <option key={lot.lot_number} value={lot.lot_number}>
-                      {lot.lot_number} (UBD:{" "}
-                      {lot.ubd_date
-                        ? new Date(lot.ubd_date).toLocaleDateString("ko-KR")
-                        : "미정"}
-                      , 재고: {lot.available_quantity}개)
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            {/* 수량 */}
-            <div>
-              <label className="block text-sm font-medium text-primary mb-2">
-                수량 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                name="quantity"
-                value={formData.quantity}
-                onChange={handleChange}
-                min="1"
-                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
-                placeholder="사용한 수량을 입력하세요"
-                required
-              />
-              {formData.lot_number && availableLots.length > 0 && (
-                <div className="mt-1 text-sm text-text-secondary">
-                  최대 사용 가능:{" "}
-                  {availableLots.find(
-                    (lot) => lot.lot_number === formData.lot_number
-                  )?.available_quantity || 0}
-                  개
-                </div>
-              )}
-            </div>
-
-            {/* 메모 */}
-            <div>
-              <label className="block text-sm font-medium text-primary mb-2">
-                메모
-              </label>
-              <textarea
-                name="notes"
-                value={formData.notes}
-                onChange={handleChange}
-                rows={3}
-                className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
-                placeholder="사용 관련 메모를 입력하세요 (선택사항)"
-              />
-            </div>
-
-            {/* 버튼 */}
-            <div className="flex space-x-3 pt-4">
-              <button
-                type="submit"
-                disabled={loading}
-                className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? "등록 중..." : "사용분 등록"}
-              </button>
-              <Link
-                href="/closing"
-                className="px-6 py-2 bg-accent-soft text-text-secondary rounded-lg hover:bg-accent-light transition-colors"
-              >
-                취소
-              </Link>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+      </form>
+    </ManualPageLayout>
   );
 }

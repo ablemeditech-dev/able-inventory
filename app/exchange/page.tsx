@@ -3,6 +3,14 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import ExchangeMethodModal from "../components/modals/ExchangeMethodModal";
+import Button from "../components/ui/Button";
+import { ExchangeTypeBadge } from "../components/ui/Badge";
+import { PlusIcon } from "../components/ui/Icons";
+import Accordion, { AccordionItem, AccordionHeader } from "../components/ui/Accordion";
+import { TableLoading } from "../components/ui/LoadingSpinner";
+import { ExchangeEmptyState } from "../components/ui/EmptyState";
+import LoadMoreButton from "../components/ui/LoadMoreButton";
+import { usePagination } from "../../hooks/usePagination";
 
 interface ExchangeRecord {
   id: string;
@@ -40,20 +48,38 @@ interface GroupedExchange {
 
 export default function ExchangePage() {
   const [exchangeRecords, setExchangeRecords] = useState<GroupedExchange[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [isMethodModalOpen, setIsMethodModalOpen] = useState(false);
+  
+  const {
+    loading,
+    loadingMore,
+    hasMore,
+    getDateFilter,
+    getRange,
+    updateHasMore,
+    resetPagination,
+    nextPage,
+    setLoadingState,
+  } = usePagination(); // 기본값 사용
 
   useEffect(() => {
-    fetchExchangeRecords();
+    fetchExchangeRecords(true);
   }, []);
 
-  const fetchExchangeRecords = async () => {
+  const fetchExchangeRecords = async (isInitial = false) => {
     try {
-      setLoading(true);
+      setLoadingState(isInitial, true);
+      
+      if (isInitial) {
+        setExchangeRecords([]);
+        resetPagination();
+      }
+
+      const { from, to } = getRange(isInitial);
+      const dateFilter = getDateFilter();
 
       // stock_movements에서 교환 기록 조회 (movement_reason = 'exchange')
-      const { data: movements, error: movementsError } = await supabase
+      const { data: movements, error: movementsError, count } = await supabase
         .from("stock_movements")
         .select(`
           id,
@@ -67,11 +93,17 @@ export default function ExchangePage() {
           ubd_date,
           notes,
           movement_type
-        `)
+        `,
+          { count: 'exact' }
+        )
         .eq("movement_reason", "exchange")
-        .order("inbound_date", { ascending: false });
+        .gte("created_at", dateFilter)
+        .order("inbound_date", { ascending: false })
+        .range(from, to);
 
       if (movementsError) throw movementsError;
+
+      updateHasMore(from, count);
 
       if (!movements || movements.length === 0) {
         setExchangeRecords([]);
@@ -122,13 +154,38 @@ export default function ExchangePage() {
           : undefined,
       }));
 
-      // 날짜별, 창고별로 그룹핑
+      // 날짜별로 그룹핑
       const grouped = groupExchangeRecords(enrichedMovements);
-      setExchangeRecords(grouped);
-    } catch (error) {
-      console.error("교환 기록 조회 실패:", error);
+      
+      if (isInitial) {
+        setExchangeRecords(grouped);
+      } else {
+        // 기존 그룹과 새 그룹을 병합 (중복 키 방지)
+        setExchangeRecords((prev) => {
+          const existingGroups = new Map(prev.map(group => [group.date, group]));
+          
+          grouped.forEach(newGroup => {
+            const key = newGroup.date;
+            if (existingGroups.has(key)) {
+              // 기존 그룹에 새 기록들 추가
+              const existingGroup = existingGroups.get(key)!;
+              existingGroup.records = [...existingGroup.records, ...newGroup.records];
+            } else {
+              // 새 그룹 추가
+              existingGroups.set(key, newGroup);
+            }
+          });
+          
+          return Array.from(existingGroups.values()).sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+        });
+        nextPage();
+      }
+    } catch (err) {
+      console.error("교환 기록 조회 실패:", err);
     } finally {
-      setLoading(false);
+      setLoadingState(isInitial, false);
     }
   };
 
@@ -190,229 +247,109 @@ export default function ExchangePage() {
     );
   };
 
-  const toggleGroup = (groupKey: string) => {
-    const newExpanded = new Set(expandedGroups);
-    if (newExpanded.has(groupKey)) {
-      newExpanded.delete(groupKey);
-    } else {
-      newExpanded.add(groupKey);
-    }
-    setExpandedGroups(newExpanded);
-  };
+  // 아코디언 아이템 생성
+  const accordionItems: AccordionItem[] = exchangeRecords.map((group) => ({
+    id: `${group.date}-${group.location_name}`,
+    header: (
+      <AccordionHeader
+        date={group.date}
+        title={group.location_name}
+        subtitle={`회수 ${group.total_out_quantity}ea / 교환 ${group.total_in_quantity}ea`}
+      />
+    ),
+    content: (
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-accent-light">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider">
+                구분
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider">
+                CFN
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider">
+                LOT
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider">
+                UBD
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider">
+                수량
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider">
+                비고
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-accent-light">
+            {group.records.map((record) => (
+              <tr key={record.id} className="hover:bg-accent-light">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <ExchangeTypeBadge type={record.movement_type} />
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-primary">
+                    {record.product?.cfn || "-"}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
+                  {record.lot_number || "-"}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
+                  {record.ubd_date
+                    ? new Date(record.ubd_date).toLocaleDateString("ko-KR")
+                    : "-"}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
+                  {record.quantity}개
+                </td>
+                <td className="px-6 py-4 text-sm text-text-secondary">
+                  {record.notes || "-"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    ),
+  }));
 
-  const getGroupKey = (group: GroupedExchange) => `${group.date}-${group.location_name}`;
+  // 더보기 버튼 클릭 핸들러
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchExchangeRecords(false);
+    }
+  };
 
   return (
     <div className="p-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-primary">교환관리</h1>
-          <button
+          <Button
             onClick={() => setIsMethodModalOpen(true)}
-            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-accent-soft transition-colors flex items-center space-x-2"
+            variant="primary"
+            icon={<PlusIcon />}
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            <span>신규교환</span>
-          </button>
+            신규교환
+          </Button>
         </div>
 
         {loading ? (
-          <div className="bg-white rounded-lg shadow-sm border border-accent-soft p-8 text-center">
-            <div className="text-text-secondary">교환 기록을 불러오는 중...</div>
-          </div>
+          <TableLoading message="교환 기록을 불러오는 중..." />
         ) : exchangeRecords.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm border border-accent-soft p-8 text-center">
-            <div className="mb-4">
-              <svg
-                className="w-16 h-16 mx-auto text-accent-soft"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1}
-                  d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                />
-              </svg>
-            </div>
-            <h2 className="text-xl font-semibold text-primary mb-2">교환 내역이 없습니다</h2>
-            <p className="text-text-secondary mb-4">첫 번째 교환을 등록해보세요.</p>
-          </div>
+          <ExchangeEmptyState onAddClick={() => setIsMethodModalOpen(true)} />
         ) : (
-          <div className="space-y-1">
-            {exchangeRecords.map((group) => {
-              const groupKey = getGroupKey(group);
-              const isExpanded = expandedGroups.has(groupKey);
-
-              return (
-                <div
-                  key={groupKey}
-                  className="bg-white rounded-lg shadow-sm border border-accent-soft overflow-hidden"
-                >
-                  {/* 아코디언 헤더 */}
-                  <button
-                    onClick={() => toggleGroup(groupKey)}
-                    className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-accent-light transition-colors"
-                  >
-                    <div className="flex items-center space-x-4">
-                      <div className="text-sm text-text-secondary w-24 flex-shrink-0">
-                        {group.date}
-                      </div>
-                      <div className="font-semibold text-primary flex-1 flex items-center space-x-2">
-                        <span>ABLE</span>
-                        {group.total_in_quantity > 0 ? (
-                          // 교환 아이콘 (새로운 제품으로 교환)
-                          <svg
-                            className="w-4 h-4 text-accent-soft"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                            />
-                          </svg>
-                        ) : (
-                          // 회수 아이콘 (오른쪽 화살표)
-                          <svg
-                            className="w-4 h-4 text-accent-soft"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M17 8l4 4m0 0l-4 4m4-4H3"
-                            />
-                          </svg>
-                        )}
-                        <span>{group.location_name}</span>
-                      </div>
-                      <div className="text-sm text-accent-soft flex-shrink-0">
-                        회수: {group.total_out_quantity}개 | 교환: {group.total_in_quantity}개
-                      </div>
-                    </div>
-                    <svg
-                      className={`w-5 h-5 text-accent-soft transition-transform ${
-                        isExpanded ? "rotate-180" : ""
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </button>
-
-                  {/* 아코디언 내용 */}
-                  {isExpanded && (
-                    <div className="border-t border-accent-light">
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead className="bg-accent-light">
-                            <tr>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider">
-                                구분
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider">
-                                CFN
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider">
-                                제품명
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider">
-                                LOT
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider">
-                                UBD
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider">
-                                수량
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider">
-                                비고
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-accent-light">
-                            {group.records
-                              .sort((a, b) => {
-                                const cfnA = a.product?.cfn || "";
-                                const cfnB = b.product?.cfn || "";
-                                return cfnA.localeCompare(cfnB);
-                              })
-                              .map((record) => (
-                                <tr
-                                  key={record.id}
-                                  className="hover:bg-accent-light"
-                                >
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <span
-                                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                        record.movement_type === 'out'
-                                          ? 'bg-red-100 text-red-800'
-                                          : 'bg-green-100 text-green-800'
-                                      }`}
-                                    >
-                                      {record.movement_type === 'out' ? '회수' : '교환'}
-                                    </span>
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm font-medium text-primary">
-                                      {record.product?.cfn || "-"}
-                                    </div>
-                                  </td>
-                                  <td className="px-6 py-4 text-sm text-text-secondary">
-                                    {record.product?.description || "-"}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
-                                    {record.lot_number || "-"}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
-                                    {record.ubd_date
-                                      ? new Date(record.ubd_date).toLocaleDateString("ko-KR")
-                                      : "-"}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
-                                    {record.quantity}개
-                                  </td>
-                                  <td className="px-6 py-4 text-sm text-text-secondary">
-                                    {record.notes || "-"}
-                                  </td>
-                                </tr>
-                              ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+          <div>
+            <Accordion items={accordionItems} allowMultiple={true} />
+            
+            {/* 더보기 버튼 */}
+            <LoadMoreButton
+              hasMore={hasMore}
+              loading={loadingMore}
+              onClick={handleLoadMore}
+            />
           </div>
         )}
       </div>

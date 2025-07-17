@@ -2,22 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { productsAPI } from "../../../../lib/supabase";
+import { productsAPI, Product } from "../../../../lib/supabase";
 import ProductDetailModal from "../../../components/modals/ProductDetailModal";
-
-interface Product {
-  id: string;
-  client_id: string;
-  cfn: string;
-  upn: string;
-  description?: string;
-  category?: string;
-  unit: string;
-  created_at?: string;
-  clients?: {
-    company_name: string;
-  };
-}
+import Alert from "../../../components/ui/Alert";
+import Button from "../../../components/ui/Button";
+import Badge from "../../../components/ui/Badge";
+import Accordion, { AccordionItem } from "../../../components/ui/Accordion";
+import { PageLoading } from "../../../components/ui/LoadingSpinner";
 
 interface GroupedProducts {
   [clientName: string]: Product[];
@@ -101,10 +92,7 @@ export default function ProductsListPage() {
     return (
       <div className="p-4">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">제품 목록</h1>
-        <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="mt-2 text-text-secondary">로딩 중...</p>
-        </div>
+        <PageLoading />
       </div>
     );
   }
@@ -114,18 +102,13 @@ export default function ProductsListPage() {
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">제품 목록</h1>
-        <Link
-          href="/settings"
-          className="px-4 py-2 bg-primary text-text-primary rounded-lg hover:bg-accent-soft transition-colors"
-        >
-          ← 돌아가기
+        <Link href="/settings">
+          <Button variant="secondary">← 돌아가기</Button>
         </Link>
       </div>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-300 rounded-lg">
-          <p className="text-red-700">{error}</p>
-        </div>
+        <Alert type="error" message={error} />
       )}
 
       {/* 아코디언 카드들 */}
@@ -133,11 +116,8 @@ export default function ProductsListPage() {
         {Object.keys(groupedProducts).length === 0 ? (
           <div className="bg-accent-light p-8 rounded-lg text-center">
             <p className="text-text-secondary mb-4">등록된 제품이 없습니다.</p>
-            <Link
-              href="/settings/product/add"
-              className="inline-block px-4 py-2 bg-primary text-text-primary rounded hover:bg-accent-soft transition-colors"
-            >
-              제품 추가
+            <Link href="/settings/product/add">
+              <Button variant="primary">제품 추가</Button>
             </Link>
           </div>
         ) : (
@@ -205,9 +185,9 @@ export default function ProductsListPage() {
                                 </td>
                                 <td className="px-4 py-3">
                                   {product.category ? (
-                                    <span className="px-2 py-1 bg-accent-light text-text-secondary text-xs rounded">
+                                    <Badge variant="default">
                                       {product.category}
-                                    </span>
+                                    </Badge>
                                   ) : (
                                     <span className="text-gray-400 text-sm">
                                       -

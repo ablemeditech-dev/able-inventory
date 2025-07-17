@@ -3,6 +3,11 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { suppliersAPI, Supplier } from '../../../../lib/supabase'
+import Alert from '../../../components/ui/Alert'
+import Button from '../../../components/ui/Button'
+import Badge from '../../../components/ui/Badge'
+import { EditIcon, TrashIcon } from "../../../components/ui/Icons";
+import { PageLoading } from "../../../components/ui/LoadingSpinner";
 
 export default function SuppliersListPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
@@ -50,10 +55,7 @@ export default function SuppliersListPage() {
     return (
       <div className="p-4">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">공급업체 목록</h1>
-        <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="mt-2 text-text-secondary">로딩 중...</p>
-        </div>
+        <PageLoading />
       </div>
     )
   }
@@ -63,29 +65,21 @@ export default function SuppliersListPage() {
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">공급업체 목록</h1>
-        <Link 
-          href="/settings"
-          className="px-4 py-2 bg-primary text-text-primary rounded-lg hover:bg-accent-soft transition-colors"
-        >
-          ← 돌아가기
+        <Link href="/settings">
+          <Button variant="secondary">← 돌아가기</Button>
         </Link>
       </div>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-300 rounded-lg">
-          <p className="text-red-700">{error}</p>
-        </div>
+        <Alert type="error" message={error} />
       )}
 
       {/* 공급업체 카드 목록 */}
       {suppliers.length === 0 ? (
         <div className="bg-accent-light rounded-lg shadow p-8 text-center">
           <p className="text-text-secondary mb-4">등록된 공급업체가 없습니다.</p>
-          <Link 
-            href="/settings/supplier/add"
-            className="inline-block px-4 py-2 bg-primary text-text-primary rounded hover:bg-accent-soft transition-colors"
-          >
-            공급업체 추가
+          <Link href="/settings/supplier/add">
+            <Button variant="primary">공급업체 추가</Button>
           </Link>
         </div>
       ) : (
@@ -99,14 +93,14 @@ export default function SuppliersListPage() {
                     {supplier.hospital_name}
                   </div>
                   {supplier.hospital_code && (
-                    <span className="px-2 py-1 bg-primary text-text-primary text-xs rounded">
+                    <Badge variant="default">
                       {supplier.hospital_code}
-                    </span>
+                    </Badge>
                   )}
                   {!supplier.is_active && (
-                    <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded">
+                    <Badge variant="error">
                       비활성
-                    </span>
+                    </Badge>
                   )}
                 </div>
                 <div className="flex items-center space-x-2">
@@ -114,17 +108,13 @@ export default function SuppliersListPage() {
                     href={`/settings/supplier/edit/${supplier.id}`}
                     className="p-1 text-primary hover:text-accent-soft transition-colors"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
+                    <EditIcon size="sm" />
                   </Link>
                   <button 
                     className="p-1 text-primary hover:text-accent-soft transition-colors"
                     onClick={() => handleDelete(supplier.id!)}
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
+                    <TrashIcon size="sm" />
                   </button>
                 </div>
               </div>

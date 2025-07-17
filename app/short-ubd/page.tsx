@@ -75,22 +75,8 @@ export default function ShortUBDPage() {
 
       if (productsError) throw productsError;
 
-      // 4. 거래처 정보 조회
-      const clientIds = [
-        ...new Set(products?.map((p) => p.client_id).filter(Boolean)),
-      ];
-      let clients: { id: string; company_name: string }[] = [];
-      if (clientIds.length > 0) {
-        const { data: clientsData } = await supabase
-          .from("clients")
-          .select("id, company_name")
-          .in("id", clientIds);
-        clients = clientsData || [];
-      }
-
-      // 5. 맵으로 변환
+      // 4. 맵으로 변환
       const productMap = new Map(products?.map((p) => [p.id, p]) || []);
-      const clientMap = new Map(clients.map((c) => [c.id, c]));
 
       // 6. 모든 위치의 재고 계산
       const allInventory: UBDInventoryItem[] = [];
@@ -239,7 +225,7 @@ export default function ShortUBDPage() {
 
         // 같은 위치 타입이면 위치명으로 정렬
         return a.location_name.localeCompare(b.location_name);
-      });
+      }).slice(0, 20); // 상위 20개만 선택
 
       setInventory(sortedInventory);
     } catch (error) {
@@ -268,9 +254,10 @@ export default function ShortUBDPage() {
 
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="flex justify-center items-center py-12">
-          <div className="text-text-secondary">재고 정보를 불러오는 중...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-text-secondary">재고 정보를 불러오는 중...</p>
         </div>
       </div>
     );
@@ -278,32 +265,37 @@ export default function ShortUBDPage() {
 
   if (error) {
     return (
-      <div className="p-6">
-        <div className="bg-red-100 border border-red-300 rounded-lg p-4">
-          <div className="text-red-700">{error}</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-status-error-text mb-4">{error}</div>
+          <button 
+            onClick={fetchAllInventoryByUBD}
+            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors"
+          >
+            다시 시도
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-primary mb-2">
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-primary mb-2">
             Short UBD 재고 현황
           </h1>
           <p className="text-text-secondary">
-            유통기한 근접 순으로 정렬된 전체 재고 현황 (총 {inventory.length}개
-            항목)
+            유통기한 근접 순으로 정렬된 전체 재고 현황 (총 {inventory.length}개 항목)
           </p>
         </div>
 
         {inventory.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm border border-accent-soft p-8 text-center">
-            <div className="mb-4">
+          <div className="bg-white rounded-lg shadow-sm border border-accent-soft p-12 text-center">
+            <div className="mb-6">
               <svg
-                className="w-16 h-16 mx-auto text-accent-soft"
+                className="w-20 h-20 mx-auto text-accent-soft"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -316,7 +308,7 @@ export default function ShortUBDPage() {
                 />
               </svg>
             </div>
-            <h2 className="text-xl font-semibold text-primary mb-2">
+            <h2 className="text-2xl font-semibold text-primary mb-3">
               재고가 없습니다
             </h2>
             <p className="text-text-secondary">
@@ -329,22 +321,22 @@ export default function ShortUBDPage() {
               <table className="w-full">
                 <thead className="bg-accent-soft/30">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-primary">
                       위치
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-primary">
                       CFN
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-primary">
                       LOT
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-primary">
                       UBD
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-primary">
                       만료까지
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-text-secondary uppercase tracking-wider">
+                    <th className="px-6 py-4 text-right text-sm font-semibold text-primary">
                       수량
                     </th>
                   </tr>

@@ -210,6 +210,14 @@ export const productsAPI = {
       .or(
         `cfn.ilike.%${query}%,upn.ilike.%${query}%,category.ilike.%${query}%`
       ),
+
+  // 특정 거래처의 제품 조회
+  getByClient: (clientId: string) =>
+    supabase
+      .from("products")
+      .select("id, cfn, description")
+      .eq("client_id", clientId)
+      .order("cfn"),
 };
 
 // 공급업체 관련 함수들

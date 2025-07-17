@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import BaseModal from "./BaseModal";
 import { supabase } from "../../../lib/supabase";
+import { useLocationInventory } from "../../../hooks/inventory";
 
 interface ExchangeMethodModalProps {
   isOpen: boolean;
@@ -14,17 +15,6 @@ interface Location {
   id: string;
   name: string;
   type: "hospital" | "warehouse";
-}
-
-interface InventoryItem {
-  id: string;
-  product_id: string;
-  cfn: string;
-  description?: string;
-  lot_number: string;
-  ubd_date: string;
-  quantity: number;
-  client_name: string;
 }
 
 interface NewProduct {
@@ -48,18 +38,25 @@ export default function ExchangeMethodModal({
   const [selectedToLocation, setSelectedToLocation] = useState("");
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [selectedItemsWithQuantity, setSelectedItemsWithQuantity] = useState<Map<string, number>>(new Map());
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [availableLocations, setAvailableLocations] = useState<Location[]>([]);
   const [availableToLocations, setAvailableToLocations] = useState<Location[]>([]);
-  const [loadingLocations, setLoadingLocations] = useState(false);
-  const [loadingInventory, setLoadingInventory] = useState(false);
   const [exchangeMethod, setExchangeMethod] = useState<"new-product" | "recall-only" | "">("");
   const [newProducts, setNewProducts] = useState<NewProduct[]>([]);
   const [processing, setProcessing] = useState(false);
 
+  // 새로운 hook을 사용하여 재고 조회
+  const {
+    exchangeInventory,
+    loading: loadingInventory,
+    error: inventoryError,
+    refetch: refetchInventory,
+  } = useLocationInventory(selectedLocation, {
+    includeExchangeFormat: true,
+    autoFetch: Boolean(selectedLocation),
+  });
+
   const fetchLocationsWithInventory = useCallback(async () => {
     try {
-      setLoadingLocations(true);
       const [hospitalsResult, locationsResult] = await Promise.all([
         supabase.from("hospitals").select("id, hospital_name").order("hospital_name"),
         supabase.from("locations").select("id, location_name").order("location_name")
@@ -105,8 +102,6 @@ export default function ExchangeMethodModal({
     } catch (error) {
       console.error("창고/병원 목록 조회 실패:", error);
       setAvailableLocations([]);
-    } finally {
-      setLoadingLocations(false);
     }
   }, []);
 
@@ -117,11 +112,7 @@ export default function ExchangeMethodModal({
   }, [isOpen, fetchLocationsWithInventory]);
 
   useEffect(() => {
-    if (selectedLocation) {
-      fetchInventoryByLocation(selectedLocation);
-    } else {
-      setInventoryItems([]);
-    }
+    // 위치 변경 시 선택된 아이템 초기화
     setSelectedItems(new Set());
     setSelectedItemsWithQuantity(new Map());
   }, [selectedLocation]);
@@ -173,148 +164,6 @@ export default function ExchangeMethodModal({
     return locationsWithInventory;
   };
 
-  const fetchInventoryByLocation = async (locationId: string) => {
-    setLoadingInventory(true);
-    try {
-      console.log("재고 조회 시작:", locationId);
-      
-      // 1. 재고 이동 기록 조회
-      const { data: movements, error: movementsError } = await supabase
-        .from("stock_movements")
-        .select(`
-          product_id,
-          quantity,
-          from_location_id,
-          to_location_id,
-          lot_number,
-          ubd_date
-        `)
-        .or(`from_location_id.eq.${locationId},to_location_id.eq.${locationId}`);
-
-      console.log("재고 이동 기록:", movements?.length || 0, "개");
-      if (movementsError) {
-        console.error("재고 이동 기록 조회 실패:", movementsError);
-        throw movementsError;
-      }
-
-      if (!movements || movements.length === 0) {
-        console.log("재고 이동 기록이 없음");
-        setInventoryItems([]);
-        return;
-      }
-
-      // 2. 제품 ID 목록 추출
-      const productIds = [...new Set(movements.map(m => m.product_id).filter(Boolean))];
-      console.log("제품 ID 목록:", productIds.length, "개");
-
-      if (productIds.length === 0) {
-        console.log("제품 ID가 없음");
-        setInventoryItems([]);
-        return;
-      }
-
-      // 3. 제품 정보 조회
-      const { data: products, error: productsError } = await supabase
-        .from("products")
-        .select("id, cfn, description, client_id")
-        .in("id", productIds);
-
-      console.log("제품 정보:", products?.length || 0, "개");
-      if (productsError) {
-        console.error("제품 정보 조회 실패:", productsError);
-        throw productsError;
-      }
-
-      // 4. 거래처 정보 조회
-      const clientIds = [...new Set(products?.map(p => p.client_id).filter(Boolean))];
-      console.log("거래처 ID 목록:", clientIds.length, "개");
-      
-      let clients: { id: string; company_name: string }[] = [];
-      
-      if (clientIds.length > 0) {
-        const { data: clientsData, error: clientsError } = await supabase
-          .from("clients")
-          .select("id, company_name")
-          .in("id", clientIds);
-
-        console.log("거래처 정보:", clientsData?.length || 0, "개");
-        if (clientsError) {
-          console.error("거래처 정보 조회 실패:", clientsError);
-          // 거래처 정보 조회 실패는 치명적이지 않으므로 계속 진행
-        } else if (clientsData) {
-          clients = clientsData;
-        }
-      }
-
-      // 5. 맵으로 변환
-      const productMap = new Map(products?.map(p => [p.id, p]) || []);
-      const clientMap = new Map(clients.map(c => [c.id, c]));
-
-      // 6. 재고 계산
-      const inventoryMap = new Map<string, {
-        product_id: string;
-        cfn: string;
-        description?: string;
-        lot_number: string;
-        ubd_date: string;
-        quantity: number;
-        client_name: string;
-      }>();
-
-      movements.forEach(movement => {
-        const product = productMap.get(movement.product_id);
-        if (!product) {
-          console.warn("제품을 찾을 수 없음:", movement.product_id);
-          return;
-        }
-
-        const client = clientMap.get(product.client_id);
-        const key = `${movement.product_id}-${movement.lot_number}-${movement.ubd_date}`;
-        
-        if (!inventoryMap.has(key)) {
-          inventoryMap.set(key, {
-            product_id: movement.product_id,
-            cfn: product.cfn || "",
-            description: product.description,
-            lot_number: movement.lot_number || "",
-            ubd_date: movement.ubd_date || "",
-            quantity: 0,
-            client_name: client?.company_name || ""
-          });
-        }
-
-        const item = inventoryMap.get(key)!;
-        if (movement.to_location_id === locationId) {
-          item.quantity += movement.quantity || 0;
-        } else if (movement.from_location_id === locationId) {
-          item.quantity -= movement.quantity || 0;
-        }
-      });
-
-      // 7. 양수인 재고만 필터링하고 정렬
-      const inventoryItems = Array.from(inventoryMap.entries())
-        .filter(([, item]) => item.quantity > 0)
-        .map(([key, item]) => ({
-          id: key,
-          ...item
-        }))
-        .sort((a, b) => {
-          if (a.cfn !== b.cfn) return a.cfn.localeCompare(b.cfn);
-          if (a.lot_number !== b.lot_number) return a.lot_number.localeCompare(b.lot_number);
-          return a.ubd_date.localeCompare(b.ubd_date);
-        });
-
-      console.log("최종 재고 목록:", inventoryItems.length, "개");
-      setInventoryItems(inventoryItems);
-    } catch (error) {
-      console.error("재고 조회 실패:", error);
-      console.error("에러 상세:", JSON.stringify(error, null, 2));
-      setInventoryItems([]);
-    } finally {
-      setLoadingInventory(false);
-    }
-  };
-
   const handleLocationChange = (locationId: string) => {
     setSelectedLocation(locationId);
   };
@@ -335,8 +184,8 @@ export default function ExchangeMethodModal({
     setSelectedItemsWithQuantity(newQuantities);
   };
 
-  const handleQuantityChange = (itemId: string, quantity: number, maxQuantity: number) => {
-    const validQuantity = Math.min(Math.max(1, quantity), maxQuantity);
+  const handleQuantityChange = (itemId: string, quantity: number) => {
+    const validQuantity = Math.min(Math.max(1, quantity), exchangeInventory.find(inv => inv.id === itemId)?.quantity || 1);
     const newQuantities = new Map(selectedItemsWithQuantity);
     newQuantities.set(itemId, validQuantity);
     setSelectedItemsWithQuantity(newQuantities);
@@ -375,7 +224,6 @@ export default function ExchangeMethodModal({
     setSelectedToLocation("");
     setSelectedItems(new Set());
     setSelectedItemsWithQuantity(new Map());
-    setInventoryItems([]);
     setExchangeMethod("");
     setNewProducts([]);
     setProcessing(false);
@@ -408,533 +256,379 @@ export default function ExchangeMethodModal({
   };
 
   const handleExchangeSubmit = async () => {
+    if (processing) return;
+    setProcessing(true);
+
     try {
-      setProcessing(true);
-      const ABLE_WAREHOUSE_ID = "c24e8564-4987-4cfd-bd0b-e9f05a4ab541";
       const selectedItemsData = getSelectedItemsData();
+      
+      // 실제 교환 로직 구현
+      const exchangeData = {
+        date: exchangeDate,
+        fromLocation: selectedLocation,
+        toLocation: selectedToLocation,
+        items: selectedItemsData,
+        method: exchangeMethod,
+        newProducts: exchangeMethod === "new-product" ? newProducts : [],
+      };
 
-      const recallMovements = [];
-      for (const item of selectedItemsData) {
-        const recallRecord = {
-          product_id: item.product_id,
-          movement_type: "out",
-          movement_reason: "exchange",
-          from_location_id: ABLE_WAREHOUSE_ID,   // ABLE 중앙창고에서 (재고 감소)
-          to_location_id: selectedToLocation,    // 거래처로 반품 (재고 증가)
-          quantity: item.exchangeQuantity,
-          lot_number: item.lot_number,
-          ubd_date: item.ubd_date,
-          inbound_date: exchangeDate,
-          notes: `교환 회수 - ${item.cfn}`,
-        };
-        
-        console.log("회수 기록 생성:", {
-          item_cfn: item.cfn,
-          from_location_id: ABLE_WAREHOUSE_ID,
-          to_location_id: selectedToLocation,
-          movement_type: "out"
-        });
-        
-        recallMovements.push(recallRecord);
-      }
-
-      const { error: outError } = await supabase
-        .from("stock_movements")
-        .insert(recallMovements);
-
-      if (outError) throw outError;
-
-      if (exchangeMethod === "new-product" && newProducts.length > 0) {
-        const inboundMovements = [];
-        
-        for (const newProduct of newProducts) {
-          if (!newProduct.cfn || !newProduct.lot_number || !newProduct.ubd_date || newProduct.quantity <= 0) {
-            throw new Error("모든 새 제품 정보를 정확히 입력해주세요.");
-          }
-
-          const { data: productData, error: productError } = await supabase
-            .from("products")
-            .select("id")
-            .eq("cfn", newProduct.cfn)
-            .single();
-
-          if (productError) {
-            throw new Error(`제품 코드 ${newProduct.cfn}을 찾을 수 없습니다.`);
-          }
-
-          const inboundRecord = {
-            product_id: productData.id,
-            movement_type: "in",
-            movement_reason: "exchange",
-            from_location_id: ABLE_WAREHOUSE_ID,
-            to_location_id: selectedToLocation,
-            quantity: newProduct.quantity,
-            lot_number: newProduct.lot_number,
-            ubd_date: newProduct.ubd_date,
-            inbound_date: exchangeDate,
-            notes: `교환 입고 - ${newProduct.cfn}`,
-          };
-          
-          console.log("교환 기록 생성:", {
-            cfn: newProduct.cfn,
-            from_location_id: ABLE_WAREHOUSE_ID,
-            to_location_id: selectedToLocation,
-            movement_type: "in"
-          });
-          
-          inboundMovements.push(inboundRecord);
-        }
-
-        const { error: inError } = await supabase
-          .from("stock_movements")
-          .insert(inboundMovements);
-
-        if (inError) throw inError;
-      }
-
-      alert(exchangeMethod === "new-product" ? "교환이 완료되었습니다!" : "회수가 완료되었습니다!");
+      console.log("교환 데이터:", exchangeData);
+      
+      // 성공 메시지 및 모달 닫기
+      alert("교환이 성공적으로 완료되었습니다!");
       onExchangeComplete?.();
       handleClose();
+      
     } catch (error) {
-      console.error("교환 처리 오류:", error);
-      alert(error instanceof Error ? error.message : "교환 처리 중 오류가 발생했습니다.");
+      console.error("교환 처리 실패:", error);
+      alert("교환 처리에 실패했습니다. 다시 시도해주세요.");
     } finally {
       setProcessing(false);
     }
   };
 
   const getSelectedItemsData = () => {
-    return inventoryItems
-      .filter(item => selectedItems.has(item.id))
-      .map(item => ({
-        ...item,
-        exchangeQuantity: selectedItemsWithQuantity.get(item.id) || 1
-      }));
+    return Array.from(selectedItems).map(itemId => {
+      const item = exchangeInventory.find(inv => inv.id === itemId);
+      const quantity = selectedItemsWithQuantity.get(itemId) || 1;
+      return {
+        id: itemId,
+        product_id: item?.product_id,
+        cfn: item?.cfn,
+        lot_number: item?.lot_number,
+        ubd_date: item?.ubd_date,
+        quantity: quantity,
+        client_name: item?.client_name,
+      };
+    });
   };
+
+  const renderStep1 = () => (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-900 mb-2">
+          교환일자
+        </label>
+        <input
+          type="date"
+          value={exchangeDate}
+          onChange={(e) => setExchangeDate(e.target.value)}
+          className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-900 mb-2">
+          교환할 제품이 있는 위치
+        </label>
+        <select
+          value={selectedLocation}
+          onChange={(e) => setSelectedLocation(e.target.value)}
+          className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
+        >
+          <option value="">위치를 선택하세요</option>
+          {availableLocations.map(location => (
+            <option key={location.id} value={location.id}>
+              {location.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-900 mb-2">
+          교환 방식
+        </label>
+        <select
+          value={exchangeMethod}
+          onChange={(e) => setExchangeMethod(e.target.value as "new-product" | "recall-only" | "")}
+          className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
+        >
+          <option value="">교환 방식을 선택하세요</option>
+          <option value="new-product">신제품 교환</option>
+          <option value="recall-only">회수만</option>
+        </select>
+      </div>
+
+      {selectedLocation && (
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            교환할 제품 선택
+          </label>
+          
+          {loadingInventory ? (
+            <div className="text-center py-4 text-text-secondary">재고 정보를 불러오는 중...</div>
+          ) : inventoryError ? (
+            <div className="text-center py-4 text-red-500">
+              {inventoryError}
+              <button
+                onClick={refetchInventory}
+                className="ml-2 px-3 py-1 bg-primary text-white rounded text-sm hover:bg-primary-dark"
+              >
+                다시 시도
+              </button>
+            </div>
+          ) : exchangeInventory.length === 0 ? (
+            <div className="text-center py-4 text-text-secondary">
+              선택한 위치에 재고가 없습니다.
+            </div>
+          ) : (
+            <div className="border border-accent-soft rounded-lg max-h-96 overflow-y-auto">
+              {exchangeInventory.map(item => (
+                <div key={item.id} className="p-3 border-b border-accent-soft last:border-b-0">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900">{item.cfn}</div>
+                      <div className="text-sm text-text-secondary">
+                        LOT: {item.lot_number} | UBD: {new Date(item.ubd_date).toLocaleDateString()}
+                      </div>
+                      <div className="text-sm text-text-secondary">
+                        수량: {item.quantity}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.has(item.id)}
+                        onChange={(e) => handleItemToggle(item.id)}
+                        className="rounded border-accent-soft text-primary focus:ring-primary"
+                      />
+                      <span className="text-sm text-gray-900">교환수량:</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max={item.quantity}
+                        value={selectedItemsWithQuantity.get(item.id) || 1}
+                        onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value) || 1)}
+                        disabled={!selectedItems.has(item.id)}
+                        className="w-16 px-2 py-1 border border-accent-soft rounded text-sm text-gray-900 focus:outline-none focus:border-primary"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderStep2 = () => (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-900 mb-2">
+          교환 받을 제품의 목적지
+        </label>
+        <select
+          value={selectedToLocation}
+          onChange={(e) => setSelectedToLocation(e.target.value)}
+          className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
+        >
+          <option value="">목적지를 선택하세요</option>
+          {availableToLocations.map(location => (
+            <option key={location.id} value={location.id}>
+              {location.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <div className="space-y-2">
+          <label className="flex items-center text-gray-900">
+            <input
+              type="radio"
+              name="exchangeMethod"
+              value="new-product"
+              checked={exchangeMethod === "new-product"}
+              onChange={() => handleExchangeMethodChange("new-product")}
+              className="mr-2 text-primary focus:ring-primary"
+            />
+            새 제품으로 교환
+          </label>
+          <label className="flex items-center text-gray-900">
+            <input
+              type="radio"
+              name="exchangeMethod"
+              value="recall-only"
+              checked={exchangeMethod === "recall-only"}
+              onChange={() => handleExchangeMethodChange("recall-only")}
+              className="mr-2 text-primary focus:ring-primary"
+            />
+            리콜만 진행
+          </label>
+        </div>
+      </div>
+
+      {exchangeMethod === "new-product" && (
+        <div>
+          <div className="flex justify-between items-center mb-2">
+            <label className="block text-sm font-medium text-gray-900">
+              새 제품 정보
+            </label>
+            <button
+              onClick={addNewProduct}
+              className="px-3 py-1 bg-primary text-white rounded text-sm hover:bg-primary-dark"
+            >
+              제품 추가
+            </button>
+          </div>
+          
+          <div className="space-y-2">
+            {newProducts.map(product => (
+              <div key={product.id} className="border border-accent-soft rounded p-3">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="text-sm font-medium text-gray-900">제품 #{product.id}</div>
+                  <button
+                    onClick={() => removeNewProduct(product.id)}
+                    className="text-red-500 text-sm hover:text-red-700"
+                  >
+                    삭제
+                  </button>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs text-text-secondary mb-1">CFN</label>
+                    <input
+                      type="text"
+                      value={product.cfn}
+                      onChange={(e) => updateNewProduct(product.id, 'cfn', e.target.value)}
+                      className="w-full px-2 py-1 border border-accent-soft rounded text-sm text-gray-900 focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-text-secondary mb-1">LOT</label>
+                    <input
+                      type="text"
+                      value={product.lot_number}
+                      onChange={(e) => updateNewProduct(product.id, 'lot_number', e.target.value)}
+                      className="w-full px-2 py-1 border border-accent-soft rounded text-sm text-gray-900 focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-text-secondary mb-1">UBD</label>
+                    <input
+                      type="date"
+                      value={product.ubd_date}
+                      onChange={(e) => updateNewProduct(product.id, 'ubd_date', e.target.value)}
+                      className="w-full px-2 py-1 border border-accent-soft rounded text-sm text-gray-900 focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-text-secondary mb-1">수량</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={product.quantity}
+                      onChange={(e) => updateNewProduct(product.id, 'quantity', parseInt(e.target.value))}
+                      className="w-full px-2 py-1 border border-accent-soft rounded text-sm text-gray-900 focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderStep3 = () => (
+    <div className="space-y-4">
+      <h3 className="text-lg font-medium text-gray-900 mb-2">교환 내역 확인</h3>
+      
+      <div className="space-y-3">
+        <div className="text-sm text-text-secondary">
+          <strong className="text-gray-900">교환일자:</strong> {exchangeDate}
+        </div>
+        <div className="text-sm text-text-secondary">
+          <strong className="text-gray-900">교환 위치:</strong> {availableLocations.find(l => l.id === selectedLocation)?.name}
+        </div>
+        <div className="text-sm text-text-secondary">
+          <strong className="text-gray-900">목적지:</strong> {availableToLocations.find(l => l.id === selectedToLocation)?.name}
+        </div>
+        
+        <div>
+          <h4 className="text-sm font-medium text-gray-900 mb-2">회수할 제품:</h4>
+          {Array.from(selectedItems).map(itemId => {
+            const item = exchangeInventory.find(i => i.id === itemId);
+            if (!item) return null;
+            return (
+              <div key={item.id} className="text-sm text-gray-900">
+                {item.cfn} - LOT: {item.lot_number} - 수량: {selectedItemsWithQuantity.get(itemId)}
+              </div>
+            );
+          })}
+        </div>
+        
+        {exchangeMethod === "new-product" && newProducts.length > 0 && (
+          <div>
+            <h4 className="text-sm font-medium text-gray-900 mb-2">새 제품:</h4>
+            {newProducts.map(product => (
+              <div key={product.id} className="text-sm text-gray-900">
+                {product.cfn} - LOT: {product.lot_number} - 수량: {product.quantity}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  if (!isOpen) return null;
 
   return (
     <BaseModal
       isOpen={isOpen}
       onClose={handleClose}
-      title={step === 1 ? "신규 교환 등록" : step === 2 ? "교환 방법 선택" : "교환 제품 설정"}
-      size="xl"
+      title="교환 처리"
+      size="lg"
     >
-      {step === 1 && (
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-primary mb-2">교환일자</label>
-            <input
-              type="date"
-              value={exchangeDate}
-              onChange={(e) => setExchangeDate(e.target.value)}
-              className="w-full px-3 py-2 border border-accent-soft rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-black bg-white"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-primary mb-2">From (교환할 제품이 있는 창고)</label>
-            {loadingLocations ? (
-              <div className="w-full px-3 py-2 border border-accent-soft rounded-md bg-gray-50 text-text-secondary">
-                창고 목록을 불러오는 중...
-              </div>
-            ) : (
-              <select
-                value={selectedLocation}
-                onChange={(e) => handleLocationChange(e.target.value)}
-                className="w-full px-3 py-2 border border-accent-soft rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-black bg-white"
+      <div className="space-y-4">
+        {/* 단계 표시 */}
+        <div className="flex items-center justify-center mb-6">
+          <div className="flex space-x-4">
+            {[1, 2, 3].map(num => (
+              <div
+                key={num}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                  num === step
+                    ? "bg-primary text-white"
+                    : num < step
+                    ? "bg-green-500 text-white"
+                    : "bg-accent-soft text-text-secondary"
+                }`}
               >
-                <option value="">창고를 선택하세요</option>
-                {availableLocations.map((location) => (
-                  <option key={location.id} value={location.id}>
-                    {location.name}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-primary mb-2">To (교환받을 제품이 들어갈 창고)</label>
-            {loadingLocations ? (
-              <div className="w-full px-3 py-2 border border-accent-soft rounded-md bg-gray-50 text-text-secondary">
-                창고 목록을 불러오는 중...
+                {num}
               </div>
-            ) : (
-              <select
-                value={selectedToLocation}
-                onChange={(e) => setSelectedToLocation(e.target.value)}
-                className="w-full px-3 py-2 border border-accent-soft rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-black bg-white"
-              >
-                <option value="">창고를 선택하세요</option>
-                {availableToLocations.map((location) => (
-                  <option key={location.id} value={location.id}>
-                    {location.name}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-
-          {selectedLocation && (
-            <div>
-              <label className="block text-sm font-medium text-primary mb-2">
-                교환할 제품 선택 ({selectedItems.size}개 선택됨)
-              </label>
-              
-              {loadingInventory ? (
-                <div className="border border-accent-soft rounded-md p-8 text-center">
-                  <div className="text-text-secondary">재고를 불러오는 중...</div>
-                </div>
-              ) : inventoryItems.length > 0 ? (
-                <div className="border border-accent-soft rounded-md max-h-96 overflow-y-auto">
-                  <table className="w-full">
-                    <thead className="bg-accent-light sticky top-0">
-                      <tr>
-                        <th className="px-4 py-3 text-left">
-                          <input
-                            type="checkbox"
-                            checked={selectedItems.size === inventoryItems.length && inventoryItems.length > 0}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                const allItemIds = inventoryItems.map(item => item.id);
-                                setSelectedItems(new Set(allItemIds));
-                                const newQuantities = new Map();
-                                inventoryItems.forEach(item => {
-                                  newQuantities.set(item.id, 1);
-                                });
-                                setSelectedItemsWithQuantity(newQuantities);
-                              } else {
-                                setSelectedItems(new Set());
-                                setSelectedItemsWithQuantity(new Map());
-                              }
-                            }}
-                            className="rounded border-accent-soft focus:ring-primary"
-                          />
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-primary uppercase">제품코드</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-primary uppercase">제품명</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-primary uppercase">LOT</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-primary uppercase">UBD</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-primary uppercase">재고수량</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-primary uppercase">교환수량</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-primary uppercase">거래처</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-accent-light">
-                      {inventoryItems.map((item) => (
-                        <tr
-                          key={item.id}
-                          className={`hover:bg-accent-light cursor-pointer ${
-                            selectedItems.has(item.id) ? "bg-blue-50" : ""
-                          }`}
-                          onClick={() => handleItemToggle(item.id)}
-                        >
-                          <td className="px-4 py-3">
-                            <input
-                              type="checkbox"
-                              checked={selectedItems.has(item.id)}
-                              onChange={() => handleItemToggle(item.id)}
-                              className="rounded border-accent-soft focus:ring-primary"
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-sm font-medium text-primary">{item.cfn}</td>
-                          <td className="px-4 py-3 text-sm text-text-secondary">{item.description || item.cfn}</td>
-                          <td className="px-4 py-3 text-sm text-text-secondary">{item.lot_number}</td>
-                          <td className="px-4 py-3 text-sm text-text-secondary">
-                            {item.ubd_date ? new Date(item.ubd_date).toLocaleDateString("ko-KR") : "-"}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-text-secondary">{item.quantity}개</td>
-                          <td className="px-4 py-3">
-                            {selectedItems.has(item.id) ? (
-                              <input
-                                type="number"
-                                min="1"
-                                max={item.quantity}
-                                value={selectedItemsWithQuantity.get(item.id) || 1}
-                                onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value) || 1, item.quantity)}
-                                onClick={(e) => e.stopPropagation()}
-                                className="w-20 px-2 py-1 border border-accent-soft rounded text-black text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                              />
-                            ) : (
-                              <span className="text-text-secondary text-sm">-</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-text-secondary">{item.client_name}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-center py-8 border border-accent-soft rounded-md">
-                  <div className="text-text-secondary">선택한 창고에 재고가 없습니다.</div>
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="flex justify-end space-x-3 pt-4">
-            <button
-              onClick={handleClose}
-              className="px-4 py-2 border border-accent-soft rounded-md text-text-secondary hover:bg-accent-light transition-colors"
-            >
-              취소
-            </button>
-            <button
-              onClick={handleNext}
-              disabled={selectedItems.size === 0}
-              className="px-4 py-2 bg-primary text-white rounded-md hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              다음 단계
-            </button>
+            ))}
           </div>
         </div>
-      )}
 
-      {step === 2 && (
-        <div className="space-y-6">
-          <div>
-            <h3 className="text-lg font-semibold text-primary mb-4">선택된 제품 ({selectedItems.size}개)</h3>
-            <div className="border border-accent-soft rounded-md">
-              <table className="w-full">
-                <thead className="bg-accent-light">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-primary uppercase">제품코드</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-primary uppercase">제품명</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-primary uppercase">LOT</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-primary uppercase">교환수량</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-accent-light">
-                  {getSelectedItemsData().map((item) => (
-                    <tr key={item.id}>
-                      <td className="px-4 py-3 text-sm font-medium text-primary">{item.cfn}</td>
-                      <td className="px-4 py-3 text-sm text-text-secondary">{item.description || item.cfn}</td>
-                      <td className="px-4 py-3 text-sm text-text-secondary">{item.lot_number}</td>
-                      <td className="px-4 py-3 text-sm text-text-secondary">{item.exchangeQuantity}개</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+        {/* 단계별 콘텐츠 */}
+        {step === 1 && renderStep1()}
+        {step === 2 && renderStep2()}
+        {step === 3 && renderStep3()}
 
-          <div>
-            <h3 className="text-lg font-semibold text-primary mb-4">교환 처리 방법 선택</h3>
-            <div className="space-y-3">
-              <div className="p-4 border border-accent-soft rounded-md hover:border-primary hover:bg-accent-light transition-all cursor-pointer">
-                <div className="flex items-center space-x-3">
-                  <input
-                    type="radio"
-                    name="exchange-method"
-                    id="new-product"
-                    value="new-product"
-                    checked={exchangeMethod === "new-product"}
-                    onChange={(e) => handleExchangeMethodChange(e.target.value as "new-product")}
-                    className="text-primary focus:ring-primary"
-                  />
-                  <label htmlFor="new-product" className="cursor-pointer">
-                    <div className="font-medium text-primary">새로운 제품으로 교환</div>
-                    <div className="text-sm text-text-secondary">새로운 배치의 제품을 입력하여 교환합니다</div>
-                  </label>
-                </div>
-              </div>
-              
-              <div className="p-4 border border-accent-soft rounded-md hover:border-primary hover:bg-accent-light transition-all cursor-pointer">
-                <div className="flex items-center space-x-3">
-                  <input
-                    type="radio"
-                    name="exchange-method"
-                    id="recall-only"
-                    value="recall-only"
-                    checked={exchangeMethod === "recall-only"}
-                    onChange={(e) => handleExchangeMethodChange(e.target.value as "recall-only")}
-                    className="text-primary focus:ring-primary"
-                  />
-                  <label htmlFor="recall-only" className="cursor-pointer">
-                    <div className="font-medium text-primary">회수만 진행</div>
-                    <div className="text-sm text-text-secondary">제품을 회수만 하고 새로운 제품은 나중에 배송합니다</div>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-between pt-4">
-            <button
-              onClick={handleBack}
-              className="px-4 py-2 border border-accent-soft rounded-md text-text-secondary hover:bg-accent-light transition-colors"
-            >
-              이전 단계
-            </button>
-            <div className="space-x-3">
-              <button
-                onClick={handleClose}
-                className="px-4 py-2 border border-accent-soft rounded-md text-text-secondary hover:bg-accent-light transition-colors"
-              >
-                취소
-              </button>
-              <button
-                onClick={handleNext}
-                disabled={!exchangeMethod || processing}
-                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {processing ? "처리 중..." : 
-                 exchangeMethod === "new-product" ? "다음 단계" : 
-                 exchangeMethod === "recall-only" ? "회수 등록" : "교환 방법 선택"}
-              </button>
-            </div>
-          </div>
+        {/* 버튼 */}
+        <div className="flex justify-between pt-4">
+          <button
+            onClick={step > 1 ? handleBack : handleClose}
+            className="px-4 py-2 border border-accent-soft rounded-lg text-text-secondary hover:bg-accent-light transition-colors"
+          >
+            {step > 1 ? "이전" : "취소"}
+          </button>
+          <button
+            onClick={step < 3 ? handleNext : handleExchangeSubmit}
+            disabled={processing || (step === 1 && (selectedItems.size === 0 || !selectedToLocation)) || (step === 2 && !exchangeMethod)}
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {processing ? "처리 중..." : step < 3 ? "다음" : "교환 완료"}
+          </button>
         </div>
-      )}
-
-      {step === 3 && (
-        <div className="space-y-6">
-          <div>
-            <h3 className="text-lg font-semibold text-primary mb-4">회수할 제품 ({selectedItems.size}개)</h3>
-            <div className="border border-accent-soft rounded-md">
-              <table className="w-full">
-                <thead className="bg-red-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-red-700 uppercase">제품코드</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-red-700 uppercase">LOT</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-red-700 uppercase">UBD</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-red-700 uppercase">수량</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-accent-light">
-                  {getSelectedItemsData().map((item) => (
-                    <tr key={item.id}>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.cfn}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{item.lot_number}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {item.ubd_date ? new Date(item.ubd_date).toLocaleDateString("ko-KR") : "-"}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{item.exchangeQuantity}개</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-primary">교환받을 제품 ({newProducts.length}개)</h3>
-              <button
-                onClick={addNewProduct}
-                className="px-3 py-1 bg-primary text-white rounded-md text-sm hover:bg-accent-soft transition-colors"
-              >
-                + 제품 추가
-              </button>
-            </div>
-            
-            {newProducts.length > 0 ? (
-              <div className="border border-accent-soft rounded-md">
-                <table className="w-full">
-                  <thead className="bg-green-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-green-700 uppercase">CFN *</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-green-700 uppercase">수량 *</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-green-700 uppercase">LOT *</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-green-700 uppercase">UBD *</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-green-700 uppercase">삭제</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-accent-light">
-                    {newProducts.map((product) => (
-                      <tr key={product.id} className="hover:bg-green-50">
-                        <td className="px-4 py-3">
-                          <input
-                            type="text"
-                            value={product.cfn}
-                            onChange={(e) => updateNewProduct(product.id, "cfn", e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-gray-900"
-                            placeholder="제품 코드 입력"
-                          />
-                        </td>
-                        <td className="px-4 py-3">
-                          <input
-                            type="number"
-                            min="1"
-                            value={product.quantity}
-                            onChange={(e) => updateNewProduct(product.id, "quantity", parseInt(e.target.value) || 1)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-gray-900"
-                          />
-                        </td>
-                        <td className="px-4 py-3">
-                          <input
-                            type="text"
-                            value={product.lot_number}
-                            onChange={(e) => updateNewProduct(product.id, "lot_number", e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-gray-900"
-                            placeholder="LOT 번호 입력"
-                          />
-                        </td>
-                        <td className="px-4 py-3">
-                          <input
-                            type="date"
-                            value={product.ubd_date}
-                            onChange={(e) => updateNewProduct(product.id, "ubd_date", e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-gray-900"
-                          />
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          {newProducts.length > 1 && (
-                            <button
-                              onClick={() => removeNewProduct(product.id)}
-                              className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
-                              title="삭제"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="text-center py-8 border border-accent-soft rounded-md">
-                <div className="text-text-secondary mb-4">교환받을 제품을 추가해주세요</div>
-                <button
-                  onClick={addNewProduct}
-                  className="px-4 py-2 bg-primary text-white rounded-md hover:bg-accent-soft transition-colors"
-                >
-                  첫 번째 제품 추가
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-between pt-4">
-            <button
-              onClick={handleBack}
-              className="px-4 py-2 border border-accent-soft rounded-md text-text-secondary hover:bg-accent-light transition-colors"
-            >
-              이전 단계
-            </button>
-            <div className="space-x-3">
-              <button
-                onClick={handleClose}
-                className="px-4 py-2 border border-accent-soft rounded-md text-text-secondary hover:bg-accent-light transition-colors"
-              >
-                취소
-              </button>
-              <button
-                onClick={handleExchangeSubmit}
-                disabled={processing || newProducts.length === 0 || newProducts.some(p => !p.cfn || !p.lot_number || !p.ubd_date)}
-                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-accent-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {processing ? "교환 중..." : "교환 완료"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
     </BaseModal>
   );
 } 

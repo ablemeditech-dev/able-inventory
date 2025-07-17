@@ -1,32 +1,33 @@
 "use client";
 
 import Link from "next/link";
+import { LinkButton } from "../ui/Button";
 
 export default function BasicSettings() {
   const sections = [
     {
-      id: "products",
-      name: "제품 정보",
-      description: "제품 카테고리 및 기본 정보를 관리합니다.",
-      buttonText: "+ 제품 추가",
+      id: "product",
+      name: "제품 관리",
+      description: "제품 정보를 등록하고 관리합니다.",
       href: "/settings/product/add",
       listHref: "/settings/product/list",
+      buttonText: "제품 추가",
     },
     {
-      id: "clients",
-      name: "거래처",
-      description: "거래처 정보를 추가하고 관리합니다.",
-      buttonText: "+ 거래처 추가",
+      id: "client",
+      name: "거래처 관리",
+      description: "거래처 정보를 등록하고 관리합니다.",
       href: "/settings/client/add",
       listHref: "/settings/client/list",
+      buttonText: "거래처 추가",
     },
     {
-      id: "suppliers",
-      name: "공급업체",
-      description: "공급업체 정보를 추가하고 관리합니다.",
-      buttonText: "+ 공급업체 추가",
+      id: "supplier",
+      name: "공급업체 관리",
+      description: "공급업체 정보를 등록하고 관리합니다.",
       href: "/settings/supplier/add",
       listHref: "/settings/supplier/list",
+      buttonText: "공급업체 추가",
     },
   ];
 
@@ -67,12 +68,12 @@ export default function BasicSettings() {
               <p className="text-text-secondary text-sm mb-4">
                 {section.description}
               </p>
-              <Link
+              <LinkButton
                 href={section.href}
-                className="inline-block px-4 py-2 bg-primary text-white rounded hover:bg-accent-soft transition-colors"
+                variant="primary"
               >
                 {section.buttonText}
-              </Link>
+              </LinkButton>
             </div>
           </div>
         ))}

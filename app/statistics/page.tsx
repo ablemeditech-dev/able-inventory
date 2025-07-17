@@ -336,11 +336,10 @@ export default function StatisticsPage() {
 
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex justify-center items-center py-12">
-            <div className="text-text-secondary">통계를 불러오는 중...</div>
-          </div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-text-secondary">통계를 불러오는 중...</p>
         </div>
       </div>
     );
@@ -348,12 +347,10 @@ export default function StatisticsPage() {
 
   if (!statistics) {
     return (
-      <div className="p-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center py-12">
-            <div className="text-red-600">
-              통계 데이터를 불러올 수 없습니다.
-            </div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-status-error-text">
+            통계 데이터를 불러올 수 없습니다.
           </div>
         </div>
       </div>
@@ -361,198 +358,134 @@ export default function StatisticsPage() {
   }
 
   return (
-    <div className="p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-background">
+      <div className="max-w-6xl mx-auto px-6 py-8">
         {/* 헤더 */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-primary">통계 분석</h1>
-            <p className="text-text-secondary mt-1">
-              재고 관리 현황 및 분석 리포트
-            </p>
+            <h1 className="text-3xl font-bold text-primary mb-2">통계 분석</h1>
+            <p className="text-text-secondary">재고 관리 현황 및 분석 리포트</p>
           </div>
-          <div className="flex items-center space-x-2">
-            <Link
-              href="/statistics/graphs"
-              className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-accent-soft transition-colors"
-            >
-              그래프 보기
-            </Link>
-          </div>
+          <Link
+            href="/statistics/graphs"
+            className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary-dark transition-colors font-medium"
+          >
+            그래프 보기
+          </Link>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* 병원별 사용 통계 */}
-          <div className="bg-white rounded-lg shadow-sm border border-accent-soft p-6">
-            <h3 className="text-lg font-semibold text-primary mb-4">
-              병원별 사용 현황
-            </h3>
-            <div className="space-y-3">
-              {statistics.hospitalStats.map((hospital, index) => {
-                return (
-                  <div
-                    key={hospital.hospitalName}
-                    className="border-b border-accent-soft pb-2 last:border-b-0"
-                  >
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="font-medium text-primary">
-                        {hospital.hospitalName}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      {hospital.monthlyUsage.map((usage, idx) => {
-                        const colors = [
-                          "bg-primary/10",
-                          "bg-accent-soft/40",
-                          "bg-gray-100",
-                        ];
-                        return (
-                          <div
-                            key={idx}
-                            className={`text-center p-1.5 ${colors[idx]} rounded`}
-                          >
-                            <div className="font-bold text-primary">
-                              {usage.usage}
-                            </div>
-                            <div className="text-text-secondary">
-                              {usage.month}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* CFN 사용 현황 */}
-          <div className="bg-white rounded-lg shadow-sm border border-accent-soft p-6">
-            <h3 className="text-lg font-semibold text-primary mb-4">
-              CFN 사용 현황
-            </h3>
-            <div className="space-y-3">
-              {statistics.hospitalStats.slice(0, 8).map((hospital, index) => (
-                <div
-                  key={hospital.hospitalName}
-                  className="border-b border-accent-soft pb-2 last:border-b-0"
-                >
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-medium text-primary">
-                      {hospital.hospitalName}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-sm mb-2">
-                    {hospital.topCfnUsage.map((cfnData, idx) => {
-                      const colors = [
-                        "bg-primary/10",
-                        "bg-accent-soft/40",
-                        "bg-gray-100",
-                      ];
+        {/* 메인 컨텐츠 그리드 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* 병원별 사용 현황 */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-xl font-semibold text-primary mb-4">병원별 사용 현황</h3>
+            
+            <div className="space-y-4">
+              {statistics.hospitalStats.slice(0, 4).map((hospital, index) => (
+                <div key={hospital.hospitalName}>
+                  <h4 className="font-semibold text-text-primary mb-2 text-base">{hospital.hospitalName}</h4>
+                  <div className="grid grid-cols-3 gap-2">
+                    {hospital.monthlyUsage.map((usage, idx) => {
+                      const bgColors = ['bg-primary', 'bg-primary-light', 'bg-accent-light'];
+                      const textColors = ['text-white', 'text-white', 'text-primary'];
                       return (
-                        <div
-                          key={idx}
-                          className={`text-center p-1.5 ${colors[idx]} rounded`}
-                        >
-                          <div className="font-bold text-primary">
-                            {cfnData.usage}
-                          </div>
-                          <div className="text-text-secondary">
-                            {cfnData.cfn}
-                          </div>
+                        <div key={idx} className={`${bgColors[idx]} rounded-md p-1.5 text-center border border-gray-100`}>
+                          <div className={`text-base font-bold ${textColors[idx]}`}>{usage.usage}</div>
+                          <div className={`text-xs ${textColors[idx]} opacity-80 font-medium`}>{usage.month}</div>
                         </div>
                       );
                     })}
                   </div>
+                  <div className="mt-1.5 h-px bg-primary opacity-20"></div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* 월별 트렌드 */}
-          <div className="bg-white rounded-lg shadow-sm border border-accent-soft p-6">
-            <h3 className="text-lg font-semibold text-primary mb-4">
-              월별 재고 이동 현황
-            </h3>
-            <div className="space-y-3">
-              {statistics.monthlyTrends
-                .slice(-5)
-                .reverse()
-                .map((item) => (
-                  <div
-                    key={item.month}
-                    className="border-b border-accent-soft pb-2 last:border-b-0"
-                  >
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="font-medium text-primary">
-                        {item.month}
-                      </span>
+          {/* CFN 사용 현황 */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-xl font-semibold text-primary mb-4">CFN 사용 현황</h3>
+            
+            <div className="space-y-4">
+              {statistics.hospitalStats.slice(0, 4).map((hospital, index) => (
+                <div key={hospital.hospitalName}>
+                  <h4 className="font-semibold text-text-primary mb-2 text-base">{hospital.hospitalName}</h4>
+                  <div className="grid grid-cols-3 gap-2">
+                    {hospital.topCfnUsage.map((cfnData, idx) => {
+                      const bgColors = ['bg-primary', 'bg-primary-light', 'bg-accent-light'];
+                      const textColors = ['text-white', 'text-white', 'text-primary'];
+                      return (
+                        <div key={idx} className={`${bgColors[idx]} rounded-md p-1.5 text-center border border-gray-100`}>
+                          <div className={`text-base font-bold ${textColors[idx]}`}>{cfnData.usage}</div>
+                          <div className={`text-xs ${textColors[idx]} opacity-80 font-medium`}>{cfnData.cfn}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-1.5 h-px bg-primary opacity-20"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 월별 재고 이동 현황 */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-xl font-semibold text-primary mb-4">월별 재고 이동 현황</h3>
+            
+            <div className="space-y-4">
+              {statistics.monthlyTrends.slice(-4).reverse().map((trend, index) => (
+                <div key={index}>
+                  <h4 className="font-semibold text-text-primary mb-2 text-base">{trend.month}</h4>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-primary rounded-md p-1.5 text-center border border-gray-100">
+                      <div className="text-base font-bold text-white">{trend.inbound}</div>
+                      <div className="text-xs text-white opacity-80 font-medium">입고</div>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div className="text-center p-1.5 bg-primary/10 rounded">
-                        <div className="font-bold text-primary">
-                          {item.inbound.toLocaleString()}
-                        </div>
-                        <div className="text-text-secondary">입고</div>
-                      </div>
-                      <div className="text-center p-1.5 bg-accent-soft/40 rounded">
-                        <div className="font-bold text-primary">
-                          {item.outbound.toLocaleString()}
-                        </div>
-                        <div className="text-text-secondary">출고</div>
-                      </div>
-                      <div className="text-center p-1.5 bg-gray-100 rounded">
-                        <div className="font-bold text-primary">
-                          {item.usage.toLocaleString()}
-                        </div>
-                        <div className="text-text-secondary">사용</div>
-                      </div>
+                    <div className="bg-primary-light rounded-md p-1.5 text-center border border-gray-100">
+                      <div className="text-base font-bold text-white">{trend.outbound}</div>
+                      <div className="text-xs text-white opacity-80 font-medium">출고</div>
+                    </div>
+                    <div className="bg-accent-light rounded-md p-1.5 text-center border border-gray-100">
+                      <div className="text-base font-bold text-primary">{trend.usage}</div>
+                      <div className="text-xs text-primary opacity-80 font-medium">사용</div>
                     </div>
                   </div>
-                ))}
+                  <div className="mt-1.5 h-px bg-primary opacity-20"></div>
+                </div>
+              ))}
             </div>
           </div>
 
           {/* CFN별 과잉재고 */}
-          <div className="bg-white rounded-lg shadow-sm border border-accent-soft p-6">
-            <h3 className="text-lg font-semibold text-primary mb-4">
-              CFN별 과잉재고
-            </h3>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-xl font-semibold text-primary mb-4">CFN별 과잉재고</h3>
+            
             {statistics.cfnStats.length === 0 ? (
               <div className="text-center py-8 text-text-secondary">
-                과잉재고가 없습니다
+                <p className="text-lg">과잉재고가 없습니다</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {statistics.cfnStats.slice(0, 6).map((item, index) => (
-                  <div
-                    key={item.cfn}
-                    className="flex items-center justify-between p-3 bg-accent-soft/20 rounded-lg hover:bg-accent-soft/30 transition-colors"
-                  >
+                {statistics.cfnStats.slice(0, 1).map((item, index) => (
+                  <div key={item.cfn} className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-200">
                     <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-sm font-bold">
-                        !
-                      </div>
-                      <span className="font-medium text-primary">
-                        {item.cfn}
-                      </span>
+                      <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+                      <span className="font-semibold text-text-primary text-lg">{item.cfn}</span>
                     </div>
                     <div className="text-right">
-                      <div className="font-bold text-red-600">
-                        {item.totalQuantity.toLocaleString()}개
-                      </div>
-                      <div className="text-sm text-text-secondary">
-                        과잉재고
-                      </div>
+                      <div className="text-2xl font-bold text-red-600">{item.totalQuantity}개</div>
+                      <div className="text-sm text-text-secondary font-medium">과잉재고</div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
+        </div>
+
+        {/* 푸터 */}
+        <div className="mt-12 text-center text-text-secondary text-sm">
+          © 2018 ABLE MEDITECH
         </div>
       </div>
     </div>

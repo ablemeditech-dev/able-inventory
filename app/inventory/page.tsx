@@ -7,6 +7,7 @@ import {
   AbleInventory,
   HospitalSpecificInventory,
 } from "../components/inventory";
+import { PageLoading } from "../components/ui/LoadingSpinner";
 
 interface Hospital {
   id: string;
@@ -59,11 +60,7 @@ export default function InventoryPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-text-secondary">로딩 중...</div>
-      </div>
-    );
+    return <PageLoading message="로딩 중..." />;
   }
 
   return (
