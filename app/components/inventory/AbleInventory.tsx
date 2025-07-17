@@ -138,7 +138,7 @@ export default function AbleInventory() {
         columns={columns}
         data={inventory}
         loading={loading}
-        error={error || undefined}
+        error={error}
         emptyMessage="검색 결과가 없습니다."
         onRetry={refetch}
       />

@@ -16,7 +16,7 @@ export interface TableProps<T> {
   columns: TableColumn<T>[];
   data: T[];
   loading?: boolean;
-  error?: string;
+  error?: string | null;
   emptyMessage?: string;
   className?: string;
   onRowClick?: (item: T, index: number) => void;
