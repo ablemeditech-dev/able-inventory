@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase, clientsAPI } from "../../../lib/supabase";
 import Alert from "../../components/ui/Alert";
 import { productsAPI } from "../../../lib/supabase";
-import FormField from "../../components/ui/FormField";
+import FormField from "../../components/forms/FormField";
 import Button from "../../components/ui/Button";
 import { SYSTEM_CONSTANTS } from "../../../lib/constants";
 import ManualPageLayout from "../../components/layout/ManualPageLayout";
