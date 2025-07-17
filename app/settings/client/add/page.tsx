@@ -72,7 +72,7 @@ export default function AddClientPage() {
           <FormField
             key={field.name}
             field={field}
-            value={formData[field.name]}
+            value={formData[field.name as keyof ClientFormData]}
             onChange={handleChange}
           />
         ))}

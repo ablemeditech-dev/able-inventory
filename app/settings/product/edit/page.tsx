@@ -138,7 +138,7 @@ export default function ProductEditPage() {
           <FormField
             key={field.name}
             field={field}
-            value={formData[field.name]}
+            value={formData[field.name as keyof ProductFormData]}
             onChange={handleChange}
           />
         ))}

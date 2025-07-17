@@ -162,7 +162,7 @@ export default function EditSupplierPage() {
           <FormField
             key={field.name}
             field={field}
-            value={formData[field.name]}
+            value={formData[field.name as keyof SupplierFormData]}
             onChange={handleChange}
           />
         ))}

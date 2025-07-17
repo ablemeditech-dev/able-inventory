@@ -109,7 +109,7 @@ export default function EditClientPage() {
           <FormField
             key={field.name}
             field={field}
-            value={formData[field.name]}
+            value={formData[field.name as keyof ClientFormData]}
             onChange={handleChange}
           />
         ))}
