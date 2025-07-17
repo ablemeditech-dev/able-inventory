@@ -106,13 +106,14 @@ export default function ManualClosingPage() {
       const inventoryMap = new Map<string, InventoryItem>();
       
       data?.forEach(item => {
-        const key = `${item.products.cfn}-${item.lot_number}`;
+        const products = Array.isArray(item.products) ? item.products[0] : item.products;
+        const key = `${products?.cfn}-${item.lot_number}`;
         
         if (!inventoryMap.has(key)) {
           inventoryMap.set(key, {
             product_id: item.product_id,
-            cfn: item.products.cfn,
-            description: item.products.description,
+            cfn: products?.cfn || '',
+            description: products?.description || '',
             lot_number: item.lot_number,
             ubd_date: item.ubd_date,
             quantity: 0
