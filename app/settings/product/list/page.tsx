@@ -47,7 +47,8 @@ export default function ProductsListPage() {
 
   // 거래처별로 제품 그룹핑 및 CFN 내림차순 정렬
   const groupedProducts: GroupedProducts = products.reduce((acc, product) => {
-    const clientName = product.clients?.company_name || "미지정 거래처";
+    const productWithClient = product as any;
+    const clientName = productWithClient.clients?.company_name || "미지정 거래처";
 
     if (!acc[clientName]) {
       acc[clientName] = [];
