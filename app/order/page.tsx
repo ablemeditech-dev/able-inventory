@@ -93,8 +93,8 @@ export default function OrderPage() {
                         <OrderTableRow
                           key={item.product_id}
                           item={item}
-                          ranking={rankingMap.get(item.cfn) || 0}
-                          topUsageHospital={hospitalTopUsage.get(item.cfn) || ''}
+                          rank={rankingMap.get(item.cfn) || 0}
+                          topHospital={hospitalTopUsage.get(item.cfn) || ''}
                         />
                       ))}
                     </tbody>
