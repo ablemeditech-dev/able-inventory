@@ -118,7 +118,7 @@ export default function StatisticsGraphsPage() {
           const displayYear = year ? year.slice(-2) : "70";
 
           return {
-            month: `${displayMonth} ${displayYear}`,
+            month: displayMonth,
             ...data,
           };
         }),
@@ -306,10 +306,10 @@ export default function StatisticsGraphsPage() {
         {/* 그래프 선택 탭 */}
         <div className="flex space-x-1 mb-6 bg-accent-soft/30 p-1 rounded-lg">
           {[
-            { key: "monthly", label: "월별 이동량" },
+            { key: "monthly", label: "월별 사용량 트렌드" },
             { key: "hospital", label: "병원별 사용량" },
+            { key: "cfn-trend", label: "주요 CFN 트렌드" },
             { key: "cfn-stock", label: "CFN별 재고" },
-            { key: "cfn-usage", label: "CFN별 사용량" },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -330,81 +330,71 @@ export default function StatisticsGraphsPage() {
           {selectedGraph === "monthly" && (
             <div className="bg-white rounded-lg shadow-sm border border-accent-soft p-6">
               <h3 className="text-lg font-semibold text-primary mb-4">
-                월별 재고 이동량
+                월별 사용량 트렌드
               </h3>
-              <div className="space-y-4">
-                {data.monthlyTrends.map((item, index) => (
-                  <div
-                    key={index}
-                    className="border-b border-accent-soft pb-4 last:border-b-0"
-                  >
-                    <div className="text-sm font-medium text-primary mb-2">
-                      {item.month}
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="space-y-1">
-                        <div className="text-xs text-primary">입고</div>
-                        <div className="bg-primary/10 rounded-full h-6 relative">
-                          <div
-                            className="h-full bg-primary rounded-full transition-all duration-1000"
-                            style={{
-                              width: `${
-                                (item.inbound /
-                                  Math.max(
-                                    ...data.monthlyTrends.map((t) => t.inbound)
-                                  )) *
-                                100
-                              }%`,
-                            }}
-                          />
-                          <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white">
-                            {item.inbound}
+              <div className="space-y-6">
+                {/* 트렌드 라인 차트 스타일 */}
+                <div className="relative">
+                  <div className="flex items-end justify-between h-64 border-b border-l border-accent-soft/30 pl-4 pb-4">
+                                         {data.monthlyTrends.map((item, index) => {
+                       const maxUsage = data.monthlyTrends.length > 0 ? Math.max(...data.monthlyTrends.map(t => t.usage)) : 0;
+                       const height = maxUsage > 0 ? (item.usage / maxUsage) * 200 : 0;
+                       const isHighest = item.usage === maxUsage && maxUsage > 0;
+                      
+                      return (
+                        <div key={index} className="flex flex-col items-center space-y-2 flex-1">
+                          <div className="relative">
+                            <div 
+                              className={`w-8 rounded-t-lg transition-all duration-1000 ease-out ${
+                                isHighest ? 'bg-red-500' : 'bg-primary'
+                              }`}
+                              style={{ height: `${height}px` }}
+                            >
+                              {item.usage > 0 && (
+                                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-primary text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                                  {item.usage}개
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-xs text-primary font-medium transform -rotate-45 origin-center mt-4">
+                            {item.month}
                           </div>
                         </div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="text-xs text-primary">출고</div>
-                        <div className="bg-accent-soft/40 rounded-full h-6 relative">
-                          <div
-                            className="h-full bg-accent-soft rounded-full transition-all duration-1000"
-                            style={{
-                              width: `${
-                                (item.outbound /
-                                  Math.max(
-                                    ...data.monthlyTrends.map((t) => t.outbound)
-                                  )) *
-                                100
-                              }%`,
-                            }}
-                          />
-                          <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white">
-                            {item.outbound}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="text-xs text-primary">사용</div>
-                        <div className="bg-gray-200 rounded-full h-6 relative">
-                          <div
-                            className="h-full bg-gray-600 rounded-full transition-all duration-1000"
-                            style={{
-                              width: `${
-                                (item.usage /
-                                  Math.max(
-                                    ...data.monthlyTrends.map((t) => t.usage)
-                                  )) *
-                                100
-                              }%`,
-                            }}
-                          />
-                          <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white">
-                            {item.usage}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                      );
+                    })}
                   </div>
-                ))}
+                  
+                                     {/* Y축 레이블 */}
+                   <div className="absolute left-0 top-0 h-full flex flex-col justify-between py-4">
+                     <span className="text-xs text-text-secondary">
+                       {data.monthlyTrends.length > 0 ? Math.max(...data.monthlyTrends.map(t => t.usage)) : 0}
+                     </span>
+                     <span className="text-xs text-text-secondary">0</span>
+                   </div>
+                </div>
+
+                                 {/* 통계 요약 */}
+                 <div className="grid grid-cols-3 gap-4 mt-6">
+                   <div className="bg-primary/5 rounded-lg p-4 text-center">
+                     <div className="text-2xl font-bold text-primary">
+                       {data.monthlyTrends.length > 0 ? data.monthlyTrends.reduce((sum, item) => sum + item.usage, 0) : 0}
+                     </div>
+                     <div className="text-sm text-text-secondary">총 사용량</div>
+                   </div>
+                   <div className="bg-accent-soft/20 rounded-lg p-4 text-center">
+                     <div className="text-2xl font-bold text-primary">
+                       {data.monthlyTrends.length > 0 ? Math.round(data.monthlyTrends.reduce((sum, item) => sum + item.usage, 0) / data.monthlyTrends.length) : 0}
+                     </div>
+                     <div className="text-sm text-text-secondary">월평균 사용량</div>
+                   </div>
+                   <div className="bg-red-50 rounded-lg p-4 text-center">
+                     <div className="text-2xl font-bold text-red-600">
+                       {data.monthlyTrends.length > 0 ? Math.max(...data.monthlyTrends.map(t => t.usage)) : 0}
+                     </div>
+                     <div className="text-sm text-text-secondary">최대 사용량</div>
+                   </div>
+                 </div>
               </div>
             </div>
           )}
@@ -417,20 +407,54 @@ export default function StatisticsGraphsPage() {
               "bg-primary"
             )}
 
+          {selectedGraph === "cfn-trend" && (
+            <div className="bg-white rounded-lg shadow-sm border border-accent-soft p-6">
+              <h3 className="text-lg font-semibold text-primary mb-4">
+                주요 CFN 사용량 비교
+              </h3>
+              <div className="space-y-4">
+                {data.topCFNs.slice(0, 5).map((cfn, index) => {
+                  const maxUsage = Math.max(...data.topCFNs.map(c => c.usageCount));
+                  const percentage = (cfn.usageCount / maxUsage) * 100;
+                  const colors = ['bg-primary', 'bg-red-500', 'bg-yellow-500', 'bg-green-500', 'bg-blue-500'];
+                  
+                  return (
+                    <div key={index} className="flex items-center space-x-4">
+                      <div className="w-24 text-sm text-primary font-medium truncate">
+                        {cfn.cfn}
+                      </div>
+                      <div className="flex-1 bg-gray-200 rounded-full h-8 relative">
+                        <div
+                          className={`h-full rounded-full ${colors[index]} transition-all duration-1000 ease-out`}
+                          style={{ width: `${percentage}%` }}
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center text-sm font-medium text-white">
+                          {cfn.usageCount}개 ({cfn.hospitalCount}개 병원)
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+                             {/* CFN 사용량 인사이트 */}
+               <div className="mt-6 p-4 bg-accent-soft/10 rounded-lg">
+                 <h4 className="font-semibold text-primary mb-2">📊 인사이트</h4>
+                 <ul className="space-y-1 text-sm text-text-secondary">
+                   <li>• 가장 많이 사용되는 CFN: <span className="font-medium text-primary">{data.topCFNs[0]?.cfn || 'N/A'}</span></li>
+                   <li>• 가장 널리 사용되는 CFN: <span className="font-medium text-primary">{data.topCFNs.length > 0 ? data.topCFNs.reduce((max, cfn) => cfn.hospitalCount > max.hospitalCount ? cfn : max).cfn : 'N/A'}</span> ({data.topCFNs.length > 0 ? data.topCFNs.reduce((max, cfn) => cfn.hospitalCount > max.hospitalCount ? cfn : max).hospitalCount : 0}개 병원)</li>
+                   <li>• 상위 5개 CFN이 전체 사용량의 <span className="font-medium text-primary">{data.topCFNs.length > 0 ? Math.round((data.topCFNs.slice(0, 5).reduce((sum, cfn) => sum + cfn.usageCount, 0) / data.topCFNs.reduce((sum, cfn) => sum + cfn.usageCount, 0)) * 100) : 0}%</span> 차지</li>
+                 </ul>
+               </div>
+            </div>
+          )}
+
           {selectedGraph === "cfn-stock" &&
             renderBarChart(
               data.cfnStats,
               "totalQuantity",
               "CFN별 과잉재고",
               "bg-red-500"
-            )}
-
-          {selectedGraph === "cfn-usage" &&
-            renderBarChart(
-              data.topCFNs,
-              "usageCount",
-              "CFN별 사용량",
-              "bg-accent-soft"
             )}
         </div>
       </div>

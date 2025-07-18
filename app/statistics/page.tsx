@@ -5,7 +5,7 @@ import { supabase } from "../../lib/supabase";
 import Link from "next/link";
 
 interface StatisticsData {
-  cfnStats: Array<{ cfn: string; totalQuantity: number; color: string }>;
+  cfnStats: Array<{ cfn: string; totalQuantity: number; monthsOfStock?: number; color: string }>;
   monthlyTrends: Array<{
     month: string;
     inbound: number;
@@ -116,6 +116,8 @@ export default function StatisticsPage() {
   ): StatisticsData => {
     // CFN별 통계
     const cfnMap = new Map<string, number>();
+    const cfnUsageMap = new Map<string, { count: number; hospitals: Set<string> }>();
+    const cfnMonthlyUsage = new Map<string, number[]>(); // CFN별 월별 사용량 추적
     const hospitalUsageMap = new Map<
       string,
       {
@@ -125,10 +127,6 @@ export default function StatisticsPage() {
         cfnUsage: Map<string, number>;
       }
     >();
-    const cfnUsageMap = new Map<
-      string,
-      { count: number; hospitals: Set<string> }
-    >();
     const monthlyData = new Map<
       string,
       { inbound: number; outbound: number; usage: number }
@@ -137,6 +135,14 @@ export default function StatisticsPage() {
     let totalInbound = 0,
       totalOutbound = 0,
       totalUsage = 0;
+
+    // 최근 3개월 키 생성 (과잉재고 계산용)
+    const now = new Date();
+    const recentMonths = [];
+    for (let i = 0; i < 3; i++) {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      recentMonths.push(`${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, "0")}`);
+    }
 
     movements.forEach((movement) => {
       const product = productMap.get(movement.product_id);
@@ -172,6 +178,14 @@ export default function StatisticsPage() {
         } else if (movement.movement_reason === "usage") {
           monthData.usage += quantity;
           totalUsage += quantity;
+
+          // CFN별 월별 사용량 추적 (과잉재고 계산용)
+          if (recentMonths.includes(monthKey)) {
+            if (!cfnMonthlyUsage.has(cfn)) {
+              cfnMonthlyUsage.set(cfn, []);
+            }
+            cfnMonthlyUsage.get(cfn)!.push(quantity);
+          }
 
           // 병원별 사용 통계
           const hospitalId = movement.from_location_id;
@@ -227,13 +241,32 @@ export default function StatisticsPage() {
       "#84CC16",
     ];
 
-    // CFN별 통계 (재고 6개 이상만)
+    // 개선된 CFN별 과잉재고 계산
     const cfnStats = Array.from(cfnMap.entries())
-      .filter(([_, quantity]) => quantity >= 6)
-      .sort(([, a], [, b]) => b - a)
-      .map(([cfn, quantity], index) => ({
-        cfn,
-        totalQuantity: quantity,
+      .map(([cfn, currentStock]) => {
+        // 최근 3개월 평균 사용량 계산
+        const usageData = cfnMonthlyUsage.get(cfn) || [];
+        const monthlyAverage = usageData.length > 0 
+          ? usageData.reduce((sum, usage) => sum + usage, 0) / Math.max(usageData.length, 1)
+          : 0;
+        
+        // 몇 개월치 재고인지 계산
+        const monthsOfStock = monthlyAverage > 0 ? currentStock / monthlyAverage : 0;
+        
+        return {
+          cfn,
+          totalQuantity: currentStock,
+          monthlyAverage,
+          monthsOfStock,
+          isExcessive: monthsOfStock > 6 && currentStock > 0, // 6개월 이상 + 재고 있음
+        };
+      })
+      .filter(item => item.isExcessive) // 과잉재고만 필터링
+      .sort((a, b) => b.monthsOfStock - a.monthsOfStock) // 과잉 정도 순 정렬
+      .map((item, index) => ({
+        cfn: item.cfn,
+        totalQuantity: item.totalQuantity,
+        monthsOfStock: item.monthsOfStock,
         color: colors[index % colors.length],
       }));
 
@@ -380,25 +413,34 @@ export default function StatisticsPage() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-xl font-semibold text-primary mb-4">병원별 사용 현황</h3>
             
-            <div className="space-y-4">
-              {statistics.hospitalStats.slice(0, 4).map((hospital, index) => (
-                <div key={hospital.hospitalName}>
-                  <h4 className="font-semibold text-text-primary mb-2 text-base">{hospital.hospitalName}</h4>
-                  <div className="grid grid-cols-3 gap-2">
-                    {hospital.monthlyUsage.map((usage, idx) => {
-                      const bgColors = ['bg-primary', 'bg-primary-light', 'bg-accent-light'];
-                      const textColors = ['text-white', 'text-white', 'text-primary'];
-                      return (
-                        <div key={idx} className={`${bgColors[idx]} rounded-md p-1.5 text-center border border-gray-100`}>
-                          <div className={`text-base font-bold ${textColors[idx]}`}>{usage.usage}</div>
-                          <div className={`text-xs ${textColors[idx]} opacity-80 font-medium`}>{usage.month}</div>
-                        </div>
-                      );
-                    })}
+            <div className="max-h-96 overflow-y-auto scrollbar-hidden">
+              <div className="space-y-3 pr-2">
+                {statistics.hospitalStats.slice(0, 8).map((hospital, index) => (
+                  <div key={hospital.hospitalName}>
+                    <h4 className="font-semibold text-text-primary mb-1.5 text-base">{hospital.hospitalName}</h4>
+                    <div className="grid grid-cols-3 gap-2">
+                      {hospital.monthlyUsage.map((usage, idx) => {
+                        const bgColors = ['bg-primary', 'bg-primary-light', 'bg-accent-light'];
+                        const textColors = ['text-white', 'text-white', 'text-primary'];
+                        return (
+                          <div key={idx} className={`${bgColors[idx]} rounded-md p-1.5 text-center border border-gray-100`}>
+                            <div className={`text-base font-bold ${textColors[idx]}`}>{usage.usage}</div>
+                            <div className={`text-xs ${textColors[idx]} opacity-80 font-medium`}>{usage.month}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-1 h-px bg-primary opacity-20"></div>
                   </div>
-                  <div className="mt-1.5 h-px bg-primary opacity-20"></div>
-                </div>
-              ))}
+                ))}
+                {statistics.hospitalStats.length > 8 && (
+                  <div className="text-center py-2">
+                    <span className="text-sm text-text-secondary">
+                      +{statistics.hospitalStats.length - 8}개 병원 더 있음
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -406,25 +448,34 @@ export default function StatisticsPage() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-xl font-semibold text-primary mb-4">CFN 사용 현황</h3>
             
-            <div className="space-y-4">
-              {statistics.hospitalStats.slice(0, 4).map((hospital, index) => (
-                <div key={hospital.hospitalName}>
-                  <h4 className="font-semibold text-text-primary mb-2 text-base">{hospital.hospitalName}</h4>
-                  <div className="grid grid-cols-3 gap-2">
-                    {hospital.topCfnUsage.map((cfnData, idx) => {
-                      const bgColors = ['bg-primary', 'bg-primary-light', 'bg-accent-light'];
-                      const textColors = ['text-white', 'text-white', 'text-primary'];
-                      return (
-                        <div key={idx} className={`${bgColors[idx]} rounded-md p-1.5 text-center border border-gray-100`}>
-                          <div className={`text-base font-bold ${textColors[idx]}`}>{cfnData.usage}</div>
-                          <div className={`text-xs ${textColors[idx]} opacity-80 font-medium`}>{cfnData.cfn}</div>
-                        </div>
-                      );
-                    })}
+            <div className="max-h-96 overflow-y-auto scrollbar-hidden">
+              <div className="space-y-3 pr-2">
+                {statistics.hospitalStats.slice(0, 8).map((hospital, index) => (
+                  <div key={hospital.hospitalName}>
+                    <h4 className="font-semibold text-text-primary mb-1.5 text-base">{hospital.hospitalName}</h4>
+                    <div className="grid grid-cols-3 gap-2">
+                      {hospital.topCfnUsage.map((cfnData, idx) => {
+                        const bgColors = ['bg-primary', 'bg-primary-light', 'bg-accent-light'];
+                        const textColors = ['text-white', 'text-white', 'text-primary'];
+                        return (
+                          <div key={idx} className={`${bgColors[idx]} rounded-md p-1.5 text-center border border-gray-100`}>
+                            <div className={`text-base font-bold ${textColors[idx]}`}>{cfnData.usage}</div>
+                            <div className={`text-xs ${textColors[idx]} opacity-80 font-medium`}>{cfnData.cfn}</div>
+                          </div>
+                        );
+                                            })}
+                    </div>
+                    <div className="mt-1 h-px bg-primary opacity-20"></div>
                   </div>
-                  <div className="mt-1.5 h-px bg-primary opacity-20"></div>
-                </div>
-              ))}
+                ))}
+                {statistics.hospitalStats.length > 8 && (
+                  <div className="text-center py-2">
+                    <span className="text-sm text-text-secondary">
+                      +{statistics.hospitalStats.length - 8}개 병원 더 있음
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -432,27 +483,27 @@ export default function StatisticsPage() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-xl font-semibold text-primary mb-4">월별 재고 이동 현황</h3>
             
-            <div className="space-y-4">
+            <div className="space-y-3">
               {statistics.monthlyTrends.slice(-4).reverse().map((trend, index) => (
                 <div key={index}>
-                  <h4 className="font-semibold text-text-primary mb-2 text-base">{trend.month}</h4>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="bg-primary rounded-md p-1.5 text-center border border-gray-100">
-                      <div className="text-base font-bold text-white">{trend.inbound}</div>
-                      <div className="text-xs text-white opacity-80 font-medium">입고</div>
+                  <h4 className="font-semibold text-text-primary mb-1.5 text-base">{trend.month}</h4>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-primary rounded-md p-1.5 text-center border border-gray-100">
+                        <div className="text-base font-bold text-white">{trend.inbound}</div>
+                        <div className="text-xs text-white opacity-80 font-medium">입고</div>
+                      </div>
+                      <div className="bg-primary-light rounded-md p-1.5 text-center border border-gray-100">
+                        <div className="text-base font-bold text-white">{trend.outbound}</div>
+                        <div className="text-xs text-white opacity-80 font-medium">출고</div>
+                      </div>
+                      <div className="bg-accent-light rounded-md p-1.5 text-center border border-gray-100">
+                        <div className="text-base font-bold text-primary">{trend.usage}</div>
+                                                  <div className="text-xs text-primary opacity-80 font-medium">사용</div>
+                      </div>
                     </div>
-                    <div className="bg-primary-light rounded-md p-1.5 text-center border border-gray-100">
-                      <div className="text-base font-bold text-white">{trend.outbound}</div>
-                      <div className="text-xs text-white opacity-80 font-medium">출고</div>
-                    </div>
-                    <div className="bg-accent-light rounded-md p-1.5 text-center border border-gray-100">
-                      <div className="text-base font-bold text-primary">{trend.usage}</div>
-                      <div className="text-xs text-primary opacity-80 font-medium">사용</div>
-                    </div>
+                    <div className="mt-1 h-px bg-primary opacity-20"></div>
                   </div>
-                  <div className="mt-1.5 h-px bg-primary opacity-20"></div>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
 
@@ -463,21 +514,36 @@ export default function StatisticsPage() {
             {statistics.cfnStats.length === 0 ? (
               <div className="text-center py-8 text-text-secondary">
                 <p className="text-lg">과잉재고가 없습니다</p>
+                <p className="text-sm mt-2">모든 CFN이 적정 재고를 유지하고 있습니다</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {statistics.cfnStats.slice(0, 1).map((item, index) => (
-                  <div key={item.cfn} className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-200">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-                      <span className="font-semibold text-text-primary text-lg">{item.cfn}</span>
+              <div className="max-h-96 overflow-y-auto scrollbar-hidden">
+                <div className="space-y-2 pr-2">
+                  {statistics.cfnStats.slice(0, 6).map((item, index) => (
+                    <div key={item.cfn} className="flex items-center justify-between p-3 bg-red-50 rounded-xl border border-red-200">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+                        <div>
+                          <span className="font-semibold text-text-primary text-lg">{item.cfn}</span>
+                          <div className="text-sm text-text-secondary">
+                            {item.monthsOfStock ? `${item.monthsOfStock.toFixed(1)}개월치 재고` : '사용량 데이터 부족'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-red-600">{item.totalQuantity}개</div>
+                        <div className="text-sm text-text-secondary font-medium">현재 재고</div>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-red-600">{item.totalQuantity}개</div>
-                      <div className="text-sm text-text-secondary font-medium">과잉재고</div>
+                  ))}
+                  {statistics.cfnStats.length > 6 && (
+                    <div className="text-center pt-2">
+                      <span className="text-sm text-text-secondary">
+                        +{statistics.cfnStats.length - 6}개 추가 과잉재고
+                      </span>
                     </div>
-                  </div>
-                ))}
+                  )}
+                </div>
               </div>
             )}
           </div>
