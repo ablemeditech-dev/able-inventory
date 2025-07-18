@@ -104,28 +104,37 @@ export default function ManualInboundPage() {
     setError("");
 
     try {
+      // 거래처의 location_id 조회
+      const { data: locationData, error: locationError } = await supabase
+        .from("locations")
+        .select("id")
+        .eq("reference_id", formData.client_id)
+        .single();
+
+      if (locationError) {
+        throw new Error("거래처 위치 정보를 찾을 수 없습니다.");
+      }
+
       // 재고 이동 기록 추가
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("stock_movements")
         .insert([
           {
             product_id: formData.product_id,
             movement_type: "in",
-            movement_reason: "inbound",
-            from_location_id: null,
+            movement_reason: "purchase",
+            from_location_id: locationData.id,
             to_location_id: SYSTEM_CONSTANTS.ABLE_WAREHOUSE_ID,
             quantity: parseInt(formData.quantity),
             lot_number: formData.lot_number || null,
             ubd_date: formData.expiry_date || null,
             notes: formData.notes || null,
-            inbound_date: formData.inbound_date, // 입고일 별도 컬럼 사용
+            inbound_date: formData.inbound_date,
+            created_at: new Date().toISOString(),
           },
-        ])
-        .select();
+        ]);
 
       if (error) throw error;
-
-      console.log("입고 등록 성공:", data);
 
       // 성공 시 입고관리 페이지로 이동
       router.push("/inbound");

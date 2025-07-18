@@ -87,7 +87,7 @@ export default function Table<T>({
             {columns.map((column, index) => (
               <th
                 key={index}
-                className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                className={`px-2 md:px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider ${
                   column.align === 'center' ? 'text-center' : 
                   column.align === 'right' ? 'text-right' : 'text-left'
                 }`}
@@ -108,7 +108,7 @@ export default function Table<T>({
               {columns.map((column, colIndex) => (
                 <td
                   key={colIndex}
-                  className={`px-6 py-4 whitespace-nowrap ${
+                  className={`px-2 md:px-4 py-2 whitespace-nowrap ${
                     column.align === 'center' ? 'text-center' : 
                     column.align === 'right' ? 'text-right' : 'text-left'
                   }`}

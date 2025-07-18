@@ -29,9 +29,9 @@ export default function OrderPage() {
   return (
     <div className="p-3 md:p-6">
       <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-4 md:mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4 md:mb-6">
           <h1 className="text-lg md:text-2xl font-bold text-primary">오더 관리</h1>
-          <Button onClick={handleOrder} variant="primary">
+          <Button onClick={handleOrder} variant="primary" className="text-sm md:text-base px-3 md:px-4 py-2">
             오더하기
           </Button>
         </div>
@@ -49,60 +49,55 @@ export default function OrderPage() {
             <div className="text-lg">로딩 중...</div>
           </div>
         ) : (
-          <>
-            <div className="mb-4 md:mb-6">
-              <div className="bg-white rounded-lg shadow overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          순위
-                        </th>
-                        <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          CFN
-                        </th>
-                        <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          거래처
-                        </th>
-                        <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          <button
-                            className="flex items-center text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700"
-                            onClick={() => handleSort('quantity', orderItems, setOrderItems)}
-                          >
-                            재고 수량
-                            {renderSortIcon('quantity')}
-                          </button>
-                        </th>
-                        <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          <button
-                            className="flex items-center text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700"
-                            onClick={() => handleSort('usage', orderItems, setOrderItems)}
-                          >
-                            6개월 사용량
-                            {renderSortIcon('usage')}
-                          </button>
-                        </th>
-                        <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          주사용 병원
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {orderItems.map((item) => (
-                        <OrderTableRow
-                          key={item.product_id}
-                          item={item}
-                          rank={rankingMap.get(item.cfn) || 0}
-                          topHospital={hospitalTopUsage.get(item.cfn) || ''}
-                        />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-2 md:px-6 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      CFN
+                    </th>
+                    <th className="px-2 md:px-6 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      거래처
+                    </th>
+                    <th className="px-2 md:px-6 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <button
+                        className="flex items-center text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700"
+                        onClick={() => handleSort('quantity', orderItems, setOrderItems)}
+                      >
+                        <span className="hidden sm:inline">재고 수량</span>
+                        <span className="sm:hidden">수량</span>
+                        {renderSortIcon('quantity')}
+                      </button>
+                    </th>
+                    <th className="px-2 md:px-6 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <button
+                        className="flex items-center text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700"
+                        onClick={() => handleSort('usage', orderItems, setOrderItems)}
+                      >
+                        <span className="hidden sm:inline">6개월 사용량</span>
+                        <span className="sm:hidden">사용량</span>
+                        {renderSortIcon('usage')}
+                      </button>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {orderItems.map((item) => {
+                    const rank = rankingMap.get(item.cfn);
+                    return (
+                      <OrderTableRow
+                        key={item.product_id}
+                        item={item}
+                        rank={rank && rank > 0 ? rank : undefined}
+                        topHospital={hospitalTopUsage.get(item.cfn) || ''}
+                      />
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

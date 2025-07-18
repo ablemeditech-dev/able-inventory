@@ -41,6 +41,7 @@ export default function ManualClosingPage() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
 
   const [formData, setFormData] = useState({
+    date: new Date().toISOString().split('T')[0], // 오늘 날짜로 초기화
     hospital_id: "",
     product_id: "",
     cfn: "",
@@ -55,14 +56,14 @@ export default function ManualClosingPage() {
     loadHospitals();
   }, []);
 
-  // 병원 선택 시 해당 병원의 재고 로드
+  // 날짜 또는 병원 선택 시 해당 병원의 재고 로드
   useEffect(() => {
-    if (formData.hospital_id) {
-      loadHospitalInventory(formData.hospital_id);
+    if (formData.hospital_id && formData.date) {
+      loadHospitalInventory(formData.hospital_id, formData.date);
     } else {
       setInventory([]);
     }
-  }, [formData.hospital_id]);
+  }, [formData.hospital_id, formData.date]);
 
   const loadHospitals = async () => {
     try {
@@ -81,10 +82,10 @@ export default function ManualClosingPage() {
     }
   };
 
-  const loadHospitalInventory = async (hospitalId: string) => {
+  const loadHospitalInventory = async (hospitalId: string, date: string) => {
     setInventoryLoading(true);
     try {
-      // 병원 ID를 직접 location_id로 사용하여 재고 조회
+      // 선택된 날짜까지의 재고 조회
       const { data, error } = await supabase
         .from("stock_movements")
         .select(`
@@ -95,9 +96,11 @@ export default function ManualClosingPage() {
           movement_type,
           from_location_id,
           to_location_id,
+          created_at,
           products!inner(cfn, description)
         `)
         .or(`from_location_id.eq.${hospitalId},to_location_id.eq.${hospitalId}`)
+        .lte('created_at', `${date}T23:59:59`)
         .order("ubd_date");
 
       if (error) throw error;
@@ -184,21 +187,30 @@ export default function ManualClosingPage() {
     setSuccess("");
 
     try {
-      // 재고 이동 기록 등록 (병원 ID를 직접 location_id로 사용)
+      // 입력값 검증
+      if (!formData.product_id || !formData.lot_number || !formData.ubd_date || !formData.quantity) {
+        throw new Error("필수 항목이 누락되었습니다.");
+      }
+
+      // 등록할 데이터 준비
+      const insertData = {
+        product_id: formData.product_id,
+        lot_number: formData.lot_number,
+        ubd_date: formData.ubd_date,
+        quantity: parseInt(formData.quantity),
+        movement_type: "out",
+        movement_reason: "usage",
+        from_location_id: formData.hospital_id, // 병원 ID를 직접 사용
+        to_location_id: null,
+        notes: formData.notes || null,
+        created_at: new Date().toISOString(),
+        inbound_date: formData.date, // 선택한 날짜를 inbound_date로 사용
+      };
+
+      // 재고 이동 기록 등록
       const { error: insertError } = await supabase
         .from("stock_movements")
-        .insert({
-          product_id: formData.product_id,
-          lot_number: formData.lot_number,
-          ubd_date: formData.ubd_date,
-          quantity: parseInt(formData.quantity),
-          movement_type: "out",
-          movement_reason: "manual_used",
-          from_location_id: formData.hospital_id, // 병원 ID를 직접 사용
-          to_location_id: null,
-          notes: formData.notes || null,
-          created_at: new Date().toISOString(),
-        });
+        .insert(insertData);
 
       if (insertError) {
         throw insertError;
@@ -245,6 +257,24 @@ export default function ManualClosingPage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* 날짜 선택 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            조회 날짜 <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="date"
+            name="date"
+            value={formData.date}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
+            required
+          />
+          <div className="text-sm text-text-secondary mt-1">
+            선택한 날짜 기준으로 재고 현황을 조회합니다.
+          </div>
+        </div>
+
         {/* 병원 선택 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -273,7 +303,7 @@ export default function ManualClosingPage() {
         </div>
 
         {/* CFN 선택 */}
-        {formData.hospital_id && (
+        {formData.hospital_id && formData.date && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               CFN <span className="text-red-500">*</span>
@@ -299,7 +329,7 @@ export default function ManualClosingPage() {
               </select>
             ) : (
               <div className="text-sm text-text-secondary">
-                선택한 병원에 재고가 없습니다.
+                선택한 병원에 {formData.date} 기준으로 재고가 없습니다.
               </div>
             )}
           </div>

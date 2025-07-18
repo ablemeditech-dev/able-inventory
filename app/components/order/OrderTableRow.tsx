@@ -27,30 +27,30 @@ export const OrderTableRow: React.FC<OrderTableRowProps> = ({
   
   return (
     <tr className={rowBgClass}>
-      {/* 거래처 열 (데스크탑만) */}
-      <td className="px-2 md:px-3 py-1.5 md:py-2 whitespace-nowrap hidden md:table-cell">
-        <div className="font-medium text-primary">
-          {item.client_name}
-        </div>
-      </td>
-      
       {/* CFN 열 */}
-      <td className="px-2 md:px-3 py-1.5 md:py-2 whitespace-nowrap">
-        <div className="font-medium text-primary">
+      <td className="px-2 md:px-6 py-2 md:py-3 whitespace-nowrap">
+        <div className="font-medium text-primary text-sm md:text-base">
           {item.cfn}
         </div>
       </td>
       
-      {/* 수량 열 */}
-      <td className="px-2 md:px-3 py-1.5 md:py-2 whitespace-nowrap">
-        <div className={`font-medium ${item.total_quantity === 0 ? 'text-red-600' : 'text-text-secondary'}`}>
+      {/* 거래처 열 */}
+      <td className="px-2 md:px-6 py-2 md:py-3 whitespace-nowrap">
+        <div className="font-medium text-primary text-sm md:text-base">
+          {item.client_name}
+        </div>
+      </td>
+      
+      {/* 재고 수량 열 */}
+      <td className="px-2 md:px-6 py-2 md:py-3 whitespace-nowrap">
+        <div className={`font-medium text-sm md:text-base ${item.total_quantity === 0 ? 'text-red-600' : 'text-text-secondary'}`}>
           {item.total_quantity.toLocaleString()}개
         </div>
       </td>
       
-      {/* 사용량 열 */}
-      <td className="px-2 md:px-3 py-1.5 md:py-2 whitespace-nowrap">
-        <div className={`font-medium ${rank ? 'text-primary' : 'text-text-secondary'} flex items-center gap-1 md:gap-2`}>
+      {/* 6개월 사용량 열 */}
+      <td className="px-2 md:px-6 py-2 md:py-3 whitespace-nowrap">
+        <div className={`font-medium text-sm md:text-base ${rank ? 'text-primary' : 'text-text-secondary'} flex items-center gap-1 md:gap-2`}>
           <span>{item.six_months_usage.toLocaleString()}개</span>
           <StatusBadges
             totalQuantity={item.total_quantity}

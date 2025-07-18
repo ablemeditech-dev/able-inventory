@@ -206,6 +206,28 @@ export const ExclamationTriangleIcon: React.FC<IconProps> = (props) => (
   </Icon>
 );
 
+// Refresh 아이콘 (새로고침용)
+export const RefreshIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+    />
+  </Icon>
+);
+
+// Search 아이콘 (검색용)
+export const SearchIcon: React.FC<IconProps> = (props) => (
+  <Icon {...props}>
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+    />
+  </Icon>
+);
+
 export default {
   Plus: PlusIcon,
   ChevronDown: ChevronDownIcon,
@@ -222,4 +244,6 @@ export default {
   ChartBar: ChartBarIcon,
   Cube: CubeIcon,
   ExclamationTriangle: ExclamationTriangleIcon,
+  Refresh: RefreshIcon,
+  Search: SearchIcon,
 }; 

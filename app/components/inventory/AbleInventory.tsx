@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useAbleInventory } from "../../../hooks/inventory";
 import Table, { TableColumn, formatDate, formatNumber } from "../ui/Table";
-import TableActions, { ActionButton, StatDisplay } from "../ui/TableActions";
 import Button from "../ui/Button";
+import { ExclamationTriangleIcon, RefreshIcon } from "../ui/Icons";
 
 // 재고 아이템 타입 정의
 interface InventoryItem {
@@ -50,6 +50,7 @@ export default function AbleInventory() {
     {
       key: 'cfn',
       header: 'CFN',
+      align: 'left' as const,
       headerRender: () => (
         <div className="flex items-center justify-between">
           <span>CFN</span>
@@ -57,81 +58,84 @@ export default function AbleInventory() {
             onClick={toggleCfnSort}
             variant="ghost"
             size="sm"
-            className="ml-2 h-6 px-2 text-xs w-16 flex-shrink-0"
+            className="ml-1 h-5 px-1 text-xs w-8 flex-shrink-0"
           >
-            {numericSort ? "length" : "diameter"}
+            {numericSort ? "L" : "D"}
           </Button>
         </div>
       ),
-      render: (value) => <span className="font-medium text-primary">{value}</span>,
+      render: (value) => <span className="font-medium text-primary text-sm">{value}</span>,
     },
     {
       key: 'lot_number',
       header: 'LOT',
-      render: (value) => <span className="text-text-secondary">{value}</span>,
+      align: 'center' as const,
+      render: (value) => <span className="text-text-secondary text-sm">{value}</span>,
     },
     {
       key: 'ubd_date',
       header: 'UBD',
-      render: (value) => <span className="text-text-secondary">{formatDate(value)}</span>,
+      align: 'center' as const,
+      render: (value) => <span className="text-text-secondary text-sm">{formatDate(value)}</span>,
     },
     {
       key: 'quantity',
       header: '수량',
-      render: (value) => <span className="font-medium text-primary">{formatNumber(value)}</span>,
       align: 'right' as const,
-    },
-  ];
-
-  // 액션 버튼 정의
-  const actions: ActionButton[] = [
-    {
-      label: "재고 감사",
-      onClick: handleStockAudit,
-      variant: 'warning',
-    },
-    {
-      label: "새로고침",
-      onClick: refetch,
-      variant: 'primary',
+      render: (value) => <span className="font-medium text-primary text-sm">{formatNumber(value)}</span>,
     },
   ];
 
   const totalQuantity = inventory.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-text-primary">
-          ABLE 중앙창고 재고 현황
-        </h2>
+    <div className="p-3 md:p-6">
+      {/* 헤더 - 제목과 총재고 한 줄 */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
         <div className="flex items-center gap-4">
-          <StatDisplay
-            label="총 재고"
-            value={`${totalQuantity.toLocaleString()}ea`}
-          />
-          <div className="flex gap-2">
-            {actions.map((action, index) => (
-              <Button
-                key={index}
-                onClick={action.onClick}
-                variant={action.variant}
-              >
-                {action.label}
-              </Button>
-            ))}
+          <h2 className="text-lg md:text-xl font-bold text-text-primary">
+            <span className="hidden sm:inline">ABLE 중앙창고 재고 현황</span>
+            <span className="sm:hidden">ABLE 재고 현황</span>
+          </h2>
+          <div className="text-sm md:text-base text-text-secondary">
+            총 재고: <span className="font-semibold text-primary">{totalQuantity.toLocaleString()}ea</span>
           </div>
         </div>
       </div>
 
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="CFN, LOT, 거래처명으로 검색..."
-          value={searchTerm}
-          onChange={(e) => handleSearch(e.target.value)}
-          className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 bg-background text-text-primary"
-        />
+      {/* 검색창과 아이콘들 한 줄 */}
+      <div className="flex gap-2 mb-4">
+        <div className="flex-1">
+          <input
+            type="text"
+            placeholder="검색"
+            value={searchTerm}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 bg-primary/5 text-text-primary text-sm placeholder-text-secondary"
+          />
+        </div>
+        <div className="flex gap-1">
+          <Button
+            onClick={handleStockAudit}
+            variant="warning"
+            size="sm"
+            className="flex items-center gap-1 px-2 py-2 min-w-fit"
+            title="재고 감사"
+          >
+            <ExclamationTriangleIcon size="sm" />
+            <span className="hidden md:inline">재고 감사</span>
+          </Button>
+          <Button
+            onClick={refetch}
+            variant="primary"
+            size="sm"
+            className="flex items-center gap-1 px-2 py-2 min-w-fit"
+            title="새로고침"
+          >
+            <RefreshIcon size="sm" />
+            <span className="hidden md:inline">새로고침</span>
+          </Button>
+        </div>
       </div>
 
       <Table

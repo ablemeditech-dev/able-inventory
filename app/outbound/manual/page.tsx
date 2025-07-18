@@ -207,7 +207,7 @@ export default function ManualOutboundPage() {
       const { data: locationData, error: locationError } = await supabase
         .from("locations")
         .select("id")
-        .eq("hospital_id", formData.hospital_id)
+        .eq("reference_id", formData.hospital_id)
         .single();
 
       if (locationError) {
@@ -228,6 +228,7 @@ export default function ManualOutboundPage() {
           to_location_id: locationData.id,
           notes: formData.notes || null,
           created_at: new Date().toISOString(),
+          inbound_date: formData.outbound_date,
         });
 
       if (insertError) {

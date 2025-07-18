@@ -35,3 +35,13 @@ html, body {
     padding-top: env(safe-area-inset-top);
   }
 }
+
+/* 스크롤바 숨기기 */
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
+}
+
+.overflow-x-auto {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
