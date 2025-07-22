@@ -13,6 +13,7 @@ export interface UDIRecord {
     cfn: string;
     upn: string;
     description: string;
+    client_id?: string;
   };
   to_location?: {
     location_name: string;

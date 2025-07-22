@@ -49,12 +49,12 @@ export default function OutboundPage() {
     loading,
     loadingMore,
     hasMore,
-    getDateFilter,
-    getRange,
+    getDateRange,
     updateHasMore,
     resetPagination,
     nextPage,
     setLoadingState,
+    getCurrentPeriodInfo,
   } = usePagination(); // 기본값 사용
 
   useEffect(() => {
@@ -70,11 +70,10 @@ export default function OutboundPage() {
         resetPagination();
       }
 
-      const { from, to } = getRange(isInitial);
-      const dateFilter = getDateFilter();
+      const { startDate, endDate } = getDateRange(isInitial);
 
       // stock_movements에서 출고 기록 조회 (movement_type = 'out', movement_reason = 'sale')
-      const { data: movements, error: movementsError, count } = await supabase
+      const { data: movements, error: movementsError } = await supabase
         .from("stock_movements")
         .select(
           `
@@ -88,20 +87,20 @@ export default function OutboundPage() {
           lot_number,
           ubd_date,
           notes
-        `,
-          { count: 'exact' }
+        `
         )
         .eq("movement_type", "out")
         .eq("movement_reason", "sale")
-        .gte("created_at", dateFilter)
-        .order("inbound_date", { ascending: false })
-        .range(from, to);
+        .gte("created_at", startDate)
+        .lt("created_at", endDate)
+        .order("inbound_date", { ascending: false });
 
       if (movementsError) throw movementsError;
 
-      updateHasMore(from, count);
+      const hasData = movements && movements.length > 0;
+      updateHasMore(hasData);
 
-      // 제품 정보와 거래처 정보를 별도로 조회
+      // 제품 정보와 병원 정보를 별도로 조회
       const productIds = [
         ...new Set(movements?.map((m) => m.product_id) || []),
       ];

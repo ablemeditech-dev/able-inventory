@@ -3,55 +3,92 @@ import { SYSTEM_CONSTANTS } from '../lib/constants';
 
 // 페이지네이션 옵션
 interface PaginationOptions {
-  recordsPerPage?: number;
-  monthsLimit?: number; // 최근 몇 개월까지 조회할지
+  initialMonths?: number; // 초기 로드할 개월 수 (기본: 1개월)
+  monthsPerPage?: number; // 더보기 시 추가로 로드할 개월 수 (기본: 1개월)
+  maxMonthsLimit?: number; // 최대 조회 가능한 개월 수 (기본: 12개월)
 }
 
-// 페이지네이션 훅
+// 날짜 범위 인터페이스
+export interface DateRange {
+  startDate: string;
+  endDate: string;
+}
+
+// 페이지네이션 훅 (월 단위)
 export const usePagination = (options: PaginationOptions = {}) => {
   const {
-    recordsPerPage = SYSTEM_CONSTANTS.PAGINATION.DEFAULT_RECORDS_PER_PAGE,
-    monthsLimit = SYSTEM_CONSTANTS.PAGINATION.DEFAULT_MONTHS_LIMIT,
+    initialMonths = 1, // 초기 1개월
+    monthsPerPage = 1, // 더보기 시 1개월씩 추가
+    maxMonthsLimit = 12, // 최대 12개월
   } = options;
 
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentMonths, setCurrentMonths] = useState(initialMonths);
 
-  // 날짜 필터 생성
-  const getDateFilter = useCallback(() => {
-    const limitDate = new Date();
-    limitDate.setMonth(limitDate.getMonth() - monthsLimit);
-    return limitDate.toISOString();
-  }, [monthsLimit]);
+  // 월 단위 날짜 범위 계산
+  const getDateRange = useCallback((isInitial: boolean): DateRange => {
+    const today = new Date();
 
-  // 페이지네이션 범위 계산
-  const getRange = useCallback((isInitial: boolean) => {
-    const from = isInitial ? 0 : currentPage * recordsPerPage;
-    const to = from + recordsPerPage - 1;
-    return { from, to };
-  }, [currentPage, recordsPerPage]);
-
-  // 더 많은 데이터가 있는지 확인
-  const updateHasMore = useCallback((from: number, count: number | null) => {
-    if (count !== null) {
-      setHasMore(from + recordsPerPage < count);
+    if (isInitial) {
+      // 초기 로드: 현재 월
+      const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0); // 현재 월 마지막 날
+      endDate.setHours(23, 59, 59, 999);
+      
+      const startDate = new Date(today.getFullYear(), today.getMonth(), 1); // 현재 월 첫 날
+      startDate.setHours(0, 0, 0, 0);
+      
+      return {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      };
+    } else {
+      // 더보기: 이전 월 구간만 조회 (currentMonths번째 이전 월)
+      const targetMonth = today.getMonth() - currentMonths; // currentMonths만큼 이전 월
+      const targetYear = today.getFullYear();
+      
+      // 음수 월 처리 (작년으로 넘어가는 경우)
+      let finalYear = targetYear;
+      let finalMonth = targetMonth;
+      if (targetMonth < 0) {
+        finalYear = targetYear - 1;
+        finalMonth = 12 + targetMonth; // targetMonth가 음수이므로 더하기
+      }
+      
+      const endDate = new Date(finalYear, finalMonth + 1, 0); // 해당 월 마지막 날
+      endDate.setHours(23, 59, 59, 999);
+      
+      const startDate = new Date(finalYear, finalMonth, 1); // 해당 월 첫 날  
+      startDate.setHours(0, 0, 0, 0);
+      
+      return {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      };
     }
-  }, [recordsPerPage]);
+  }, [currentMonths]);
+
+  // 더 많은 데이터가 있는지 확인 - 최대 월 수 제한을 우선으로 고려
+  const updateHasMore = useCallback((hasData: boolean = true) => {
+    const canLoadMore = currentMonths < maxMonthsLimit;
+    // 데이터가 없더라도 최대 월 수 제한까지는 더보기 허용
+    // (연속으로 빈 월이 있을 수 있으므로)
+    setHasMore(canLoadMore);
+  }, [currentMonths, maxMonthsLimit]);
 
   // 페이지 상태 초기화
   const resetPagination = useCallback(() => {
-    setCurrentPage(1);
+    setCurrentMonths(initialMonths);
     setHasMore(true);
     setLoading(true);
     setLoadingMore(false);
-  }, []);
+  }, [initialMonths]);
 
-  // 다음 페이지로 이동
+  // 다음 페이지(월)로 이동
   const nextPage = useCallback(() => {
-    setCurrentPage(prev => prev + 1);
-  }, []);
+    setCurrentMonths(prev => prev + monthsPerPage);
+  }, [monthsPerPage]);
 
   // 로딩 상태 관리
   const setLoadingState = useCallback((isInitial: boolean, isLoading: boolean) => {
@@ -62,23 +99,34 @@ export const usePagination = (options: PaginationOptions = {}) => {
     }
   }, []);
 
+  // 현재 로드된 기간 정보 (디버그/표시용)
+  const getCurrentPeriodInfo = useCallback(() => {
+    const { startDate, endDate } = getDateRange(false);
+    return {
+      monthsLoaded: currentMonths,
+      startDate: new Date(startDate).toLocaleDateString('ko-KR'),
+      endDate: new Date(endDate).toLocaleDateString('ko-KR'),
+    };
+  }, [currentMonths, getDateRange]);
+
   return {
     // 상태
     loading,
     loadingMore,
     hasMore,
-    currentPage,
+    currentMonths,
     
     // 헬퍼 함수
-    getDateFilter,
-    getRange,
+    getDateRange,
     updateHasMore,
     resetPagination,
     nextPage,
     setLoadingState,
+    getCurrentPeriodInfo,
     
     // 상수
-    recordsPerPage,
-    monthsLimit,
+    initialMonths,
+    monthsPerPage,
+    maxMonthsLimit,
   };
 }; 

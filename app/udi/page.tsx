@@ -23,13 +23,13 @@ interface GroupedUDI {
 export default function UDIPage() {
   const [udiRecords, setUdiRecords] = useState<GroupedUDI[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
+  const [clientMap, setClientMap] = useState<Map<string, {id: string, company_name: string}>>(new Map());
   
   const {
     loading,
     loadingMore,
     hasMore,
-    getDateFilter,
-    getRange,
+    getDateRange,
     updateHasMore,
     resetPagination,
     nextPage,
@@ -49,11 +49,10 @@ export default function UDIPage() {
         resetPagination();
       }
 
-      const { from, to } = getRange(isInitial);
-      const dateFilter = getDateFilter();
+      const { startDate, endDate } = getDateRange(isInitial);
 
       // stock_movements에서 출고 기록 조회 (movement_type = 'out')
-      const { data: movements, error: movementsError, count } = await supabase
+      const { data: movements, error: movementsError } = await supabase
         .from("stock_movements")
         .select(
           `
@@ -67,18 +66,18 @@ export default function UDIPage() {
           lot_number,
           ubd_date,
           notes
-        `,
-          { count: 'exact' }
+        `
         )
         .eq("movement_type", "out")
         .eq("movement_reason", "sale")
-        .gte("created_at", dateFilter)
-        .order("inbound_date", { ascending: false })
-        .range(from, to);
+        .gte("created_at", startDate)
+        .lt("created_at", endDate)
+        .order("inbound_date", { ascending: false });
 
       if (movementsError) throw movementsError;
 
-      updateHasMore(from, count);
+      const hasData = movements && movements.length > 0;
+      updateHasMore(hasData);
 
       // 제품 정보와 거래처 정보를 별도로 조회
       const productIds = [
@@ -95,7 +94,7 @@ export default function UDIPage() {
         await Promise.all([
           supabase
             .from("products")
-            .select("id, cfn, upn, description")
+            .select("id, cfn, upn, description, client_id")
             .in("id", productIds),
           supabase
             .from("locations")
@@ -110,6 +109,22 @@ export default function UDIPage() {
       if (productsResult.error) throw productsResult.error;
       if (locationsResult.error) throw locationsResult.error;
       if (hospitalsResult.error) throw hospitalsResult.error;
+
+      // 거래처 정보 조회
+      const clientIds = [
+        ...new Set(productsResult.data?.map(p => p.client_id).filter(Boolean) || [])
+      ];
+      
+      if (clientIds.length > 0) {
+        const { data: clientsData, error: clientsError } = await supabase
+          .from("clients")
+          .select("id, company_name")
+          .in("id", clientIds);
+        
+        if (!clientsError && clientsData) {
+          setClientMap(new Map(clientsData.map(c => [c.id, c])));
+        }
+      }
 
       // 데이터 매핑
       const productMap = new Map(
@@ -278,6 +293,10 @@ export default function UDIPage() {
             const upn = record.product?.upn || "";
             const ubdDate = record.ubd_date;
             const lotNumber = record.lot_number || "";
+            const cfn = record.product?.cfn || "";
+            const clientId = record.product?.client_id;
+            const client = clientId ? clientMap.get(clientId) : null;
+            const clientName = client?.company_name || "";
 
             if (upn && ubdDate && lotNumber) {
               // UBD를 YYMMDD 형식으로 변환
@@ -287,8 +306,27 @@ export default function UDIPage() {
               const day = ubd.getDate().toString().padStart(2, "0");
               const ubdFormatted = `${year}${month}${day}`;
 
-              // UPN을 GTIN으로 사용
-              gs1Format = `(01)${upn}(17)${ubdFormatted}(10)${lotNumber}`;
+              // 디버깅 로그
+              console.log(`CFN: ${cfn}, UPN: ${upn}, 거래처: ${clientName}, LOT: ${lotNumber}, UBD: ${ubdFormatted}`);
+
+              // 새로운 바코드 형식을 사용할지 결정
+              // 방법 1: CFN 패턴으로 판단 (225-로 시작하는 제품들)
+              // 방법 2: 거래처명으로 판단
+              // 방법 3: UPN 패턴으로 판단
+              
+              const useNewFormat = 
+                cfn.startsWith("225-") || // CFN이 225-로 시작
+                upn.startsWith("0693495594"); // 또는 UPN이 특정 패턴
+
+              if (useNewFormat) {
+                // 새로운 GS1-128 형식: (01) + (17) + (30) + | + (10)
+                gs1Format = `(01)${upn}(17)${ubdFormatted}(30)1|(10)${lotNumber}`;
+                console.log(`새로운 형식 적용 (CFN: ${cfn}, 거래처: ${clientName}): ${gs1Format}`);
+              } else {
+                // 기존 GS1-128 형식: (01) + (17) + (10)
+                gs1Format = `(01)${upn}(17)${ubdFormatted}(10)${lotNumber}`;
+                console.log(`기존 형식 적용 (CFN: ${cfn}, 거래처: ${clientName}): ${gs1Format}`);
+              }
             }
 
             excelData.push({

@@ -13,6 +13,7 @@ interface OrderTableRowProps {
   item: OrderItem;
   rank?: number;
   topHospital?: string;
+  showClientName?: boolean;
 }
 
 /**
@@ -22,6 +23,7 @@ export const OrderTableRow: React.FC<OrderTableRowProps> = ({
   item,
   rank,
   topHospital,
+  showClientName = true,
 }) => {
   const rowBgClass = getRowBackgroundClass(item.total_quantity, item.six_months_usage);
   
@@ -34,12 +36,14 @@ export const OrderTableRow: React.FC<OrderTableRowProps> = ({
         </div>
       </td>
       
-      {/* 거래처 열 */}
-      <td className="px-2 md:px-6 py-2 md:py-3 whitespace-nowrap">
-        <div className="font-medium text-primary text-sm md:text-base">
-          {item.client_name}
-        </div>
-      </td>
+      {/* 거래처 열 - 조건부 렌더링 */}
+      {showClientName && (
+        <td className="px-2 md:px-6 py-2 md:py-3 whitespace-nowrap">
+          <div className="font-medium text-primary text-sm md:text-base">
+            {item.client_name}
+          </div>
+        </td>
+      )}
       
       {/* 재고 수량 열 */}
       <td className="px-2 md:px-6 py-2 md:py-3 whitespace-nowrap">

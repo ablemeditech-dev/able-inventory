@@ -47,8 +47,7 @@ export default function InboundPage() {
     loading,
     loadingMore,
     hasMore,
-    getDateFilter,
-    getRange,
+    getDateRange,
     updateHasMore,
     resetPagination,
     nextPage,
@@ -68,11 +67,10 @@ export default function InboundPage() {
         resetPagination();
       }
 
-      const { from, to } = getRange(isInitial);
-      const dateFilter = getDateFilter();
+      const { startDate, endDate } = getDateRange(isInitial);
 
       // stock_movements에서 입고 기록 조회 (movement_type = 'in')
-      const { data: movements, error: movementsError, count } = await supabase
+      const { data: movements, error: movementsError } = await supabase
         .from("stock_movements")
         .select(
           `
@@ -86,17 +84,17 @@ export default function InboundPage() {
           lot_number,
           ubd_date,
           notes
-        `,
-          { count: 'exact' }
+        `
         )
         .eq("movement_type", "in")
-        .gte("created_at", dateFilter)
-        .order("inbound_date", { ascending: false })
-        .range(from, to);
+        .gte("created_at", startDate)
+        .lt("created_at", endDate)
+        .order("inbound_date", { ascending: false });
 
       if (movementsError) throw movementsError;
 
-      updateHasMore(from, count);
+      const hasData = movements && movements.length > 0;
+      updateHasMore(hasData);
 
       // 제품 정보와 거래처 정보를 별도로 조회
       const productIds = [
@@ -145,14 +143,15 @@ export default function InboundPage() {
       } else {
         // 기존 그룹과 새 그룹을 병합 (중복 키 방지)
         setInboundRecords((prev) => {
-          const existingGroups = new Map(prev.map(group => [group.date, group]));
+          const existingGroups = new Map(prev.map(group => [`${group.date}-${group.client_name}`, group]));
           
           grouped.forEach(newGroup => {
-            const key = newGroup.date;
+            const key = `${newGroup.date}-${newGroup.client_name}`;
             if (existingGroups.has(key)) {
               // 기존 그룹에 새 기록들 추가
               const existingGroup = existingGroups.get(key)!;
               existingGroup.records = [...existingGroup.records, ...newGroup.records];
+              existingGroup.total_quantity += newGroup.total_quantity;
             } else {
               // 새 그룹 추가
               existingGroups.set(key, newGroup);

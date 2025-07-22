@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { useRouter } from "next/navigation";
 import Button from "../components/ui/Button";
@@ -10,7 +10,6 @@ import Accordion, { AccordionItem, AccordionHeader } from "../components/ui/Acco
 import { TableLoading } from "../components/ui/LoadingSpinner";
 import { UsageEmptyState } from "../components/ui/EmptyState";
 import LoadMoreButton from "../components/ui/LoadMoreButton";
-import { usePagination } from "../../hooks/usePagination";
 
 interface UsedRecord {
   id: string;
@@ -44,38 +43,58 @@ interface GroupedUsed {
 export default function ClosingPage() {
   const [usedRecords, setUsedRecords] = useState<GroupedUsed[]>([]);
   const [isMethodModalOpen, setIsMethodModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [currentYears, setCurrentYears] = useState(1); // 년도 기반
   const router = useRouter();
-  
-  const {
-    loading,
-    loadingMore,
-    hasMore,
-    getDateFilter,
-    getRange,
-    updateHasMore,
-    resetPagination,
-    nextPage,
-    setLoadingState,
-  } = usePagination(); // 기본값 사용
 
   useEffect(() => {
     fetchUsedRecords(true);
   }, []);
 
+  // 년도별 날짜 범위 계산
+  const getYearDateRange = (isInitial: boolean) => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+
+    if (isInitial) {
+      // 초기 로드: 현재 년도만
+      const startDate = new Date(currentYear, 0, 1); // 1월 1일
+      const endDate = new Date(currentYear, 11, 31, 23, 59, 59, 999); // 12월 31일
+      
+      return {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      };
+    } else {
+      // 더보기: 새로운 년도만 조회 (currentYears번째 이전 년도)
+      const targetYear = currentYear - currentYears;
+      const startDate = new Date(targetYear, 0, 1); // 해당 년도 1월 1일
+      const endDate = new Date(targetYear, 11, 31, 23, 59, 59, 999); // 해당 년도 12월 31일
+      
+      return {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      };
+    }
+  };
+
   const fetchUsedRecords = async (isInitial = false) => {
     try {
-      setLoadingState(isInitial, true);
-      
       if (isInitial) {
+        setLoading(true);
         setUsedRecords([]);
-        resetPagination();
+        setCurrentYears(1);
+        setHasMore(true);
+      } else {
+        setLoadingMore(true);
       }
 
-      const { from, to } = getRange(isInitial);
-      const dateFilter = getDateFilter();
+      const { startDate, endDate } = getYearDateRange(isInitial);
 
       // stock_movements에서 사용 기록 조회 (movement_type = 'out', movement_reason = 'used' or 'manual_used' or 'usage')
-      const { data: movements, error: movementsError, count } = await supabase
+      const { data: movements, error: movementsError } = await supabase
         .from("stock_movements")
         .select(
           `
@@ -89,18 +108,19 @@ export default function ClosingPage() {
           lot_number,
           ubd_date,
           notes
-        `,
-          { count: 'exact' }
+        `
         )
         .eq("movement_type", "out")
         .in("movement_reason", ["used", "manual_used", "usage"])
-        .gte("created_at", dateFilter)
-        .order("inbound_date", { ascending: false })
-        .range(from, to);
+        .gte("created_at", startDate)
+        .lt("created_at", endDate)
+        .order("inbound_date", { ascending: false });
 
       if (movementsError) throw movementsError;
 
-      updateHasMore(from, count);
+      const hasData = movements && movements.length > 0;
+      // 최대 5년까지만 조회 허용
+      setHasMore(currentYears < 5);
 
       // 제품 정보와 병원 정보를 별도로 조회
       const productIds = [...new Set(movements.map((m) => m.product_id))];
@@ -138,7 +158,7 @@ export default function ClosingPage() {
           : undefined,
       }));
 
-      // 날짜별로 그룹핑
+      // 날짜별, 병원별로 그룹핑
       const grouped = groupUsedRecords(enrichedMovements);
       
       if (isInitial) {
@@ -146,14 +166,15 @@ export default function ClosingPage() {
       } else {
         // 기존 그룹과 새 그룹을 병합 (중복 키 방지)
         setUsedRecords((prev) => {
-          const existingGroups = new Map(prev.map(group => [group.date, group]));
+          const existingGroups = new Map(prev.map(group => [`${group.date}-${group.hospital_name}`, group]));
           
           grouped.forEach(newGroup => {
-            const key = newGroup.date;
+            const key = `${newGroup.date}-${newGroup.hospital_name}`;
             if (existingGroups.has(key)) {
               // 기존 그룹에 새 기록들 추가
               const existingGroup = existingGroups.get(key)!;
               existingGroup.records = [...existingGroup.records, ...newGroup.records];
+              existingGroup.total_quantity += newGroup.total_quantity;
             } else {
               // 새 그룹 추가
               existingGroups.set(key, newGroup);
@@ -164,12 +185,16 @@ export default function ClosingPage() {
             (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
           );
         });
-        nextPage();
+        setCurrentYears(prev => prev + 1); // 년도 증가
       }
     } catch (err) {
       console.error("사용 기록 조회 실패:", err);
     } finally {
-      setLoadingState(isInitial, false);
+      if (isInitial) {
+        setLoading(false);
+      } else {
+        setLoadingMore(false);
+      }
     }
   };
 

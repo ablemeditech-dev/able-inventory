@@ -54,8 +54,7 @@ export default function ExchangePage() {
     loading,
     loadingMore,
     hasMore,
-    getDateFilter,
-    getRange,
+    getDateRange,
     updateHasMore,
     resetPagination,
     nextPage,
@@ -75,11 +74,10 @@ export default function ExchangePage() {
         resetPagination();
       }
 
-      const { from, to } = getRange(isInitial);
-      const dateFilter = getDateFilter();
+      const { startDate, endDate } = getDateRange(isInitial);
 
       // stock_movements에서 교환 기록 조회 (movement_reason = 'exchange')
-      const { data: movements, error: movementsError, count } = await supabase
+      const { data: movements, error: movementsError } = await supabase
         .from("stock_movements")
         .select(`
           id,
@@ -93,17 +91,16 @@ export default function ExchangePage() {
           ubd_date,
           notes,
           movement_type
-        `,
-          { count: 'exact' }
-        )
+        `)
         .eq("movement_reason", "exchange")
-        .gte("created_at", dateFilter)
-        .order("inbound_date", { ascending: false })
-        .range(from, to);
+        .gte("created_at", startDate)
+        .lt("created_at", endDate)
+        .order("inbound_date", { ascending: false });
 
       if (movementsError) throw movementsError;
 
-      updateHasMore(from, count);
+      const hasData = movements && movements.length > 0;
+      updateHasMore(hasData);
 
       if (!movements || movements.length === 0) {
         setExchangeRecords([]);
@@ -162,14 +159,16 @@ export default function ExchangePage() {
       } else {
         // 기존 그룹과 새 그룹을 병합 (중복 키 방지)
         setExchangeRecords((prev) => {
-          const existingGroups = new Map(prev.map(group => [group.date, group]));
+          const existingGroups = new Map(prev.map(group => [`${group.date}-${group.location_name}`, group]));
           
           grouped.forEach(newGroup => {
-            const key = newGroup.date;
+            const key = `${newGroup.date}-${newGroup.location_name}`;
             if (existingGroups.has(key)) {
               // 기존 그룹에 새 기록들 추가
               const existingGroup = existingGroups.get(key)!;
               existingGroup.records = [...existingGroup.records, ...newGroup.records];
+              existingGroup.total_out_quantity += newGroup.total_out_quantity;
+              existingGroup.total_in_quantity += newGroup.total_in_quantity;
             } else {
               // 새 그룹 추가
               existingGroups.set(key, newGroup);

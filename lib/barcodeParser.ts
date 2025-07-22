@@ -40,6 +40,20 @@ function parseSingleBarcode(barcodeText: string): ParsedBarcodeItem {
     throw new Error("Empty barcode data");
   }
 
+  // 파이프(|) 구분자 확인으로 새로운 형식인지 판단
+  const hasPipeDelimiter = trimmed.includes("|");
+
+  if (hasPipeDelimiter) {
+    return parseNewFormat(trimmed);
+  } else {
+    return parseOriginalFormat(trimmed);
+  }
+}
+
+/**
+ * 기존 형식 파싱: 01 + 17 + 10
+ */
+function parseOriginalFormat(trimmed: string): ParsedBarcodeItem {
   // AI 01 (UPN) 파싱 - 14자리
   if (!trimmed.startsWith("01")) {
     throw new Error("Barcode must start with AI 01 (UPN)");
@@ -88,6 +102,96 @@ function parseSingleBarcode(barcodeText: string): ParsedBarcodeItem {
   }
 
   const lot = remaining.substring(2); // AI 10 다음 모든 문자
+
+  if (!lot) {
+    throw new Error("LOT number cannot be empty");
+  }
+
+  return {
+    upn,
+    ubd,
+    lot,
+    rawData: trimmed,
+  };
+}
+
+/**
+ * 새로운 형식 파싱: 01 + 17 + 30 + | + 10
+ * 예시: 0106934955949364 17 270317 30 1 | 10 4925512503
+ */
+function parseNewFormat(trimmed: string): ParsedBarcodeItem {
+  // 파이프로 분할
+  const parts = trimmed.split("|");
+  if (parts.length !== 2) {
+    throw new Error("New format must have exactly one pipe (|) delimiter");
+  }
+
+  const beforePipe = parts[0].trim();
+  const afterPipe = parts[1].trim();
+
+  // AI 01 (UPN) 파싱 - 14자리
+  if (!beforePipe.startsWith("01")) {
+    throw new Error("Barcode must start with AI 01 (UPN)");
+  }
+
+  if (beforePipe.length < 16) {
+    // "01" + 14자리 UPN
+    throw new Error("Barcode too short for UPN");
+  }
+
+  const upn = beforePipe.substring(2, 16); // AI 01 다음 14자리
+
+  // UPN 숫자 검증
+  if (!/^\d{14}$/.test(upn)) {
+    throw new Error(`Invalid UPN format: ${upn}`);
+  }
+
+  let remaining = beforePipe.substring(16);
+
+  // AI 17 (UBD) 파싱 - 6자리
+  if (!remaining.startsWith("17")) {
+    throw new Error("Expected AI 17 (UBD) after UPN");
+  }
+
+  if (remaining.length < 8) {
+    // "17" + 6자리 UBD
+    throw new Error("Barcode too short for UBD");
+  }
+
+  const ubd = remaining.substring(2, 8); // AI 17 다음 6자리
+
+  // UBD 형식 검증
+  if (!/^\d{6}$/.test(ubd)) {
+    throw new Error(`Invalid UBD format: ${ubd}`);
+  }
+
+  if (!validateUbd(ubd)) {
+    throw new Error(`Invalid UBD date: ${ubd}`);
+  }
+
+  remaining = remaining.substring(8);
+
+  // AI 30 (수량) 파싱 - 가변 길이 (건너뜀, 값은 저장하지 않음)
+  if (!remaining.startsWith("30")) {
+    throw new Error("Expected AI 30 (Count) after UBD in new format");
+  }
+
+  // AI 30 다음의 숫자들을 건너뜀 (공백까지)
+  remaining = remaining.substring(2); // "30" 제거
+  
+  // 숫자가 아닌 문자(공백 등)를 만날 때까지 건너뜀
+  let i = 0;
+  while (i < remaining.length && /\d/.test(remaining[i])) {
+    i++;
+  }
+  // AI 30의 값은 사용하지 않으므로 건너뜀
+
+  // 파이프 뒤 부분에서 AI 10 (LOT) 파싱
+  if (!afterPipe.startsWith("10")) {
+    throw new Error("Expected AI 10 (LOT) after pipe in new format");
+  }
+
+  const lot = afterPipe.substring(2).trim(); // AI 10 다음 모든 문자
 
   if (!lot) {
     throw new Error("LOT number cannot be empty");
@@ -178,5 +282,8 @@ export function parseGS1BarcodesToCsv(barcodeText: string): string {
  */
 export function getTestBarcodeData(): string {
   return `01069437182285231727062310LD240344
-01069437182282571727111110LD240818`;
+01069437182282571727111110LD240818
+0106934955949364172703173001|104925512503
+0106934955949524172706033001|104962172506
+0106934955949814172702103001|104909162501`;
 }
