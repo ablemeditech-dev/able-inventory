@@ -23,6 +23,7 @@ interface GraphData {
   topCFNs: Array<{
     cfn: string;
     usageCount: number;
+    hospitalCount?: number;
   }>;
 }
 
@@ -429,7 +430,7 @@ export default function StatisticsGraphsPage() {
                           style={{ width: `${percentage}%` }}
                         />
                         <div className="absolute inset-0 flex items-center justify-center text-sm font-medium text-white">
-                          {cfn.usageCount}개 ({cfn.hospitalCount}개 병원)
+                          {cfn.usageCount}개 {cfn.hospitalCount ? `(${cfn.hospitalCount}개 병원)` : ''}
                         </div>
                       </div>
                     </div>
@@ -442,7 +443,7 @@ export default function StatisticsGraphsPage() {
                  <h4 className="font-semibold text-primary mb-2">📊 인사이트</h4>
                  <ul className="space-y-1 text-sm text-text-secondary">
                    <li>• 가장 많이 사용되는 CFN: <span className="font-medium text-primary">{data.topCFNs[0]?.cfn || 'N/A'}</span></li>
-                   <li>• 가장 널리 사용되는 CFN: <span className="font-medium text-primary">{data.topCFNs.length > 0 ? data.topCFNs.reduce((max, cfn) => cfn.hospitalCount > max.hospitalCount ? cfn : max).cfn : 'N/A'}</span> ({data.topCFNs.length > 0 ? data.topCFNs.reduce((max, cfn) => cfn.hospitalCount > max.hospitalCount ? cfn : max).hospitalCount : 0}개 병원)</li>
+                   <li>• 가장 널리 사용되는 CFN: <span className="font-medium text-primary">{data.topCFNs.length > 0 ? data.topCFNs.reduce((max, cfn) => (cfn.hospitalCount || 0) > (max.hospitalCount || 0) ? cfn : max).cfn : 'N/A'}</span> ({data.topCFNs.length > 0 ? data.topCFNs.reduce((max, cfn) => (cfn.hospitalCount || 0) > (max.hospitalCount || 0) ? cfn : max).hospitalCount || 0 : 0}개 병원)</li>
                    <li>• 상위 5개 CFN이 전체 사용량의 <span className="font-medium text-primary">{data.topCFNs.length > 0 ? Math.round((data.topCFNs.slice(0, 5).reduce((sum, cfn) => sum + cfn.usageCount, 0) / data.topCFNs.reduce((sum, cfn) => sum + cfn.usageCount, 0)) * 100) : 0}%</span> 차지</li>
                  </ul>
                </div>
