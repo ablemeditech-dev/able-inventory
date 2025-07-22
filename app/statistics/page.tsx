@@ -138,7 +138,7 @@ export default function StatisticsPage() {
 
     // 최근 3개월 키 생성 (과잉재고 계산용)
     const now = new Date();
-    const recentMonths = [];
+    const recentMonths: string[] = [];
     for (let i = 0; i < 3; i++) {
       const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
       recentMonths.push(`${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, "0")}`);
