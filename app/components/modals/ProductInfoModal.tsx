@@ -16,7 +16,7 @@ interface ProductInfo {
   created_at?: string;
   clients?: {
     company_name: string;
-  };
+  } | null;
 }
 
 interface ProductInfoModalProps {
@@ -76,7 +76,13 @@ export default function ProductInfoModal({
         throw new Error("제품 정보를 찾을 수 없습니다.");
       }
 
-      setProduct(data);
+      // clients 배열에서 첫 번째 요소만 추출
+      const processedData = {
+        ...data,
+        clients: data.clients && data.clients.length > 0 ? data.clients[0] : null
+      };
+
+      setProduct(processedData);
     } catch (err) {
       console.error("제품 정보 조회 실패:", err);
       setError(err instanceof Error ? err.message : "제품 정보 조회에 실패했습니다.");
