@@ -14,7 +14,7 @@ interface ProductInfo {
   category?: string;
   clients?: {
     company_name: string;
-  };
+  } | null;
 }
 
 interface ProductInfoModalProps {
