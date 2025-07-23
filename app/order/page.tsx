@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useOrderData } from "../../hooks/useOrderData";
 import { useTableSort } from "../../hooks/useTableSort";
 import { getTopFiveRanking } from "../../utils/ranking";
@@ -8,6 +8,7 @@ import { OrderTableRow } from "../components/order/OrderTableRow";
 import Button from "../components/ui/Button";
 import Alert from "../components/ui/Alert";
 import Accordion, { AccordionItem } from "../components/ui/Accordion";
+import ProductInfoModal from "../components/modals/ProductInfoModal";
 
 // 거래처별 그룹화된 오더 데이터 타입
 interface ClientGroupedOrder {
@@ -17,6 +18,7 @@ interface ClientGroupedOrder {
   totalItems: number;
   totalQuantity: number;
   totalUsage: number;
+  orderNeededItems: number;
 }
 
 export default function OrderPage() {
@@ -31,8 +33,33 @@ export default function OrderPage() {
 
   const { sortConfig, handleSort, renderSortIcon } = useTableSort();
 
+  // 제품정보 모달 상태
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [selectedCfn, setSelectedCfn] = useState<string>("");
+
   const handleOrder = () => {
     alert("오더 기능은 준비 중입니다.");
+  };
+
+  // CFN 클릭 핸들러
+  const handleCfnClick = (cfn: string) => {
+    setSelectedCfn(cfn);
+    setIsProductModalOpen(true);
+  };
+
+  // 오더 필요 여부 판단 함수 (StatusBadges 로직 참고)
+  const isOrderNeeded = (totalQuantity: number, sixMonthsUsage: number) => {
+    const monthlyAverageUsage = sixMonthsUsage / 6;
+    const isStockOut = totalQuantity === 0;
+    
+    // 3개월치 재고 기준으로 재고 부족 예정 판단
+    const threeMonthsStock = monthlyAverageUsage * 3;
+    const isLowStock = totalQuantity > 0 && 
+                       totalQuantity < threeMonthsStock && 
+                       sixMonthsUsage > 0 &&
+                       monthlyAverageUsage >= 0.1; // 월평균이 너무 작으면 제외
+    
+    return isStockOut || isLowStock;
   };
 
   // 순위 계산 (매번 계산하지 않도록 최적화 가능)
@@ -53,7 +80,8 @@ export default function OrderPage() {
           orders: [],
           totalItems: 0,
           totalQuantity: 0,
-          totalUsage: 0
+          totalUsage: 0,
+          orderNeededItems: 0
         });
       }
       
@@ -62,6 +90,11 @@ export default function OrderPage() {
       group.totalItems += 1;
       group.totalQuantity += item.total_quantity;
       group.totalUsage += item.six_months_usage;
+      
+      // 오더 필요 품목 수 계산
+      if (isOrderNeeded(item.total_quantity, item.six_months_usage)) {
+        group.orderNeededItems += 1;
+      }
     });
 
     // 거래처명으로 정렬
@@ -108,31 +141,29 @@ export default function OrderPage() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {orders.map((item) => {
-              const rank = rankingMap.get(item.cfn);
-              return (
-                <OrderTableRow
-                  key={item.product_id}
-                  item={item}
-                  rank={rank && rank > 0 ? rank : undefined}
-                  topHospital={hospitalTopUsage.get(item.cfn) || ''}
-                  showClientName={showClientColumn}
-                />
-              );
-            })}
+            {orders.map((item, index) => (
+              <OrderTableRow 
+                key={`${item.cfn}-${item.client_id || item.client_name}`}
+                item={item}
+                rank={rankingMap.get(item.cfn)}
+                topHospital={hospitalTopUsage.get(item.cfn) || ''}
+                showClientName={showClientColumn}
+                onCfnClick={handleCfnClick}
+              />
+            ))}
           </tbody>
         </table>
       </div>
     </div>
   );
 
-  const totalQuantity = orderItems.reduce((sum, item) => sum + item.total_quantity, 0);
-  const totalUsage = orderItems.reduce((sum, item) => sum + item.six_months_usage, 0);
+  // 총 재고 수량 계산
+  const totalQuantity = useMemo(() => {
+    return groupedOrders.reduce((sum, group) => sum + group.totalQuantity, 0);
+  }, [groupedOrders]);
 
-  // 거래처가 하나뿐인 경우 아코디언 없이 표시
+  // 거래처가 하나뿐이면 아코디언 없이 바로 테이블 표시
   if (groupedOrders.length === 1) {
-    const singleClient = groupedOrders[0];
-    
     return (
       <div className="p-3 md:p-6">
         <div className="max-w-6xl mx-auto">
@@ -141,8 +172,7 @@ export default function OrderPage() {
             <div className="flex items-center gap-4">
               <h1 className="text-lg md:text-2xl font-bold text-primary">오더 관리</h1>
               <div className="text-sm md:text-base text-text-secondary">
-                {singleClient.clientName} • {singleClient.totalItems}개 품목 • 
-                총 재고: <span className="font-semibold text-primary">{totalQuantity.toLocaleString()}개</span>
+                거래처: <span className="font-semibold text-primary">{groupedOrders[0].clientName}</span> • 총 재고: <span className="font-semibold text-primary">{totalQuantity.toLocaleString()}개</span>
               </div>
             </div>
             <Button onClick={handleOrder} variant="primary" className="text-sm md:text-base px-3 md:px-4 py-2">
@@ -165,6 +195,13 @@ export default function OrderPage() {
           ) : (
             createOrderTable(orderItems, false) // 거래처 컬럼 숨김
           )}
+
+          {/* 제품정보 모달 */}
+          <ProductInfoModal
+            isOpen={isProductModalOpen}
+            onClose={() => setIsProductModalOpen(false)}
+            cfn={selectedCfn}
+          />
         </div>
       </div>
     );
@@ -188,13 +225,13 @@ export default function OrderPage() {
             재고: <span className="font-medium text-primary">{group.totalQuantity.toLocaleString()}개</span>
           </span>
           <span className="text-sm text-text-secondary">
-            사용량: <span className="font-medium text-primary">{group.totalUsage.toLocaleString()}개</span>
+            오더필요: <span className="font-medium text-primary">{group.orderNeededItems}품목</span>
           </span>
         </div>
       </div>
     ),
     content: createOrderTable(group.orders, false), // 거래처 컬럼 숨김
-    defaultExpanded: true
+    defaultExpanded: false
   }));
 
   return (
@@ -243,6 +280,13 @@ export default function OrderPage() {
             allowMultiple={true}
           />
         )}
+
+        {/* 제품정보 모달 */}
+        <ProductInfoModal
+          isOpen={isProductModalOpen}
+          onClose={() => setIsProductModalOpen(false)}
+          cfn={selectedCfn}
+        />
       </div>
     </div>
   );

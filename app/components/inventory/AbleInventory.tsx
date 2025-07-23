@@ -222,7 +222,7 @@ export default function AbleInventory() {
       <div className="flex items-center justify-between w-full">
         <div className="flex items-center gap-4">
           <span className="font-semibold text-primary text-base">
-            {group.clientName}
+            재고 현황
           </span>
           <span className="text-sm text-text-secondary">
             {group.inventory.length}개 품목
@@ -243,7 +243,7 @@ export default function AbleInventory() {
         onRetry={() => {}}
       />
     ),
-    defaultExpanded: true
+    defaultExpanded: false
   }));
 
   return (
@@ -256,7 +256,7 @@ export default function AbleInventory() {
             <span className="sm:hidden">ABLE 재고 현황</span>
           </h2>
           <div className="text-sm md:text-base text-text-secondary">
-            {groupedInventory.length}개 거래처 • 총 재고: <span className="font-semibold text-primary">{totalQuantity.toLocaleString()}ea</span>
+            총 재고: <span className="font-semibold text-primary">{totalQuantity.toLocaleString()}ea</span>
           </div>
         </div>
       </div>

@@ -14,6 +14,7 @@ interface OrderTableRowProps {
   rank?: number;
   topHospital?: string;
   showClientName?: boolean;
+  onCfnClick?: (cfn: string) => void;
 }
 
 /**
@@ -24,6 +25,7 @@ export const OrderTableRow: React.FC<OrderTableRowProps> = ({
   rank,
   topHospital,
   showClientName = true,
+  onCfnClick,
 }) => {
   const rowBgClass = getRowBackgroundClass(item.total_quantity, item.six_months_usage);
   
@@ -31,9 +33,18 @@ export const OrderTableRow: React.FC<OrderTableRowProps> = ({
     <tr className={rowBgClass}>
       {/* CFN 열 */}
       <td className="px-2 md:px-6 py-2 md:py-3 whitespace-nowrap">
-        <div className="font-medium text-primary text-sm md:text-base">
-          {item.cfn}
-        </div>
+        {onCfnClick ? (
+          <button
+            onClick={() => onCfnClick(item.cfn)}
+            className="font-medium text-primary text-sm md:text-base hover:text-accent hover:underline cursor-pointer transition-colors"
+          >
+            {item.cfn}
+          </button>
+        ) : (
+          <div className="font-medium text-primary text-sm md:text-base">
+            {item.cfn}
+          </div>
+        )}
       </td>
       
       {/* 거래처 열 - 조건부 렌더링 */}

@@ -6,6 +6,7 @@ import Table, { TableColumn, formatDate, formatQuantity } from "../ui/Table";
 import Button from "../ui/Button";
 import { ExclamationTriangleIcon, RefreshIcon } from "../ui/Icons";
 import Accordion, { AccordionItem } from "../ui/Accordion";
+import ProductInfoModal from "../modals/ProductInfoModal";
 
 interface Hospital {
   id: string;
@@ -39,6 +40,10 @@ export default function HospitalSpecificInventory({
 }: HospitalSpecificInventoryProps) {
   const [searchTerm, setSearchTerm] = useState("");
   
+  // 제품정보 모달 상태
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [selectedCfn, setSelectedCfn] = useState<string>("");
+  
   const {
     inventory,
     loading,
@@ -49,6 +54,23 @@ export default function HospitalSpecificInventory({
     refetch,
     hasInventory,
   } = useHospitalInventory(hospital.id);
+
+  // 검색 기능
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    filterInventory(term);
+  };
+
+  // 재고 감사 기능
+  const handleStockAudit = () => {
+    alert("재고 감사 기능은 준비 중입니다.");
+  };
+
+  // CFN 클릭 핸들러
+  const handleCfnClick = (cfn: string) => {
+    setSelectedCfn(cfn);
+    setIsProductModalOpen(true);
+  };
 
   // 거래처별 재고 그룹화
   const groupedInventory = useMemo(() => {
@@ -72,28 +94,16 @@ export default function HospitalSpecificInventory({
       group.totalQuantity += item.quantity;
     });
 
-    // 거래처명으로 정렬
     return Array.from(groups.values()).sort((a, b) => 
       a.clientName.localeCompare(b.clientName)
     );
   }, [inventory]);
 
-  // 검색 핸들러
-  const handleSearch = (value: string) => {
-    setSearchTerm(value);
-    filterInventory(value);
-  };
-
-  // 재고 감사 핸들러
-  const handleStockAudit = () => {
-    const confirmation = window.confirm(
-      `${hospital.hospital_name}의 재고 감사를 시작하시겠습니까?`
-    );
-    if (confirmation) {
-      console.log(`${hospital.hospital_name} 재고 감사 시작`);
-      // 필요시 재고 감사 관련 API 호출
-    }
-  };
+  // 총 재고 계산
+  const totalQuantity = useMemo(() => 
+    inventory.reduce((sum, item) => sum + item.quantity, 0), 
+    [inventory]
+  );
 
   // 테이블 컬럼 정의
   const createColumns = (showClientName: boolean = true): TableColumn<InventoryItem>[] => [
@@ -114,7 +124,14 @@ export default function HospitalSpecificInventory({
           </Button>
         </div>
       ),
-      render: (value) => <span className="font-medium text-primary text-sm">{value}</span>,
+      render: (value) => (
+        <button
+          onClick={() => handleCfnClick(value)}
+          className="font-medium text-primary text-sm hover:text-accent hover:underline cursor-pointer transition-colors"
+        >
+          {value}
+        </button>
+      ),
     },
     ...(showClientName ? [{
       key: 'client_name' as keyof InventoryItem,
@@ -142,14 +159,10 @@ export default function HospitalSpecificInventory({
     },
   ];
 
-  const totalQuantity = inventory.reduce((sum, item) => sum + item.quantity, 0);
-
   // 거래처가 하나뿐인 경우 아코디언 없이 표시
   if (groupedInventory.length === 1) {
-    const singleClient = groupedInventory[0];
-    
     return (
-      <div className="p-3 md:p-6">
+      <div className="space-y-4">
         {/* 헤더 - 병원명과 총재고 한 줄 */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
           <div className="flex items-center gap-4">
@@ -157,7 +170,7 @@ export default function HospitalSpecificInventory({
               {hospital.hospital_name}
             </h2>
             <div className="text-sm md:text-base text-text-secondary">
-              {singleClient.clientName} • 총 재고: <span className="font-semibold text-primary">{totalQuantity.toLocaleString()}ea</span>
+              총 재고: <span className="font-semibold text-primary">{totalQuantity.toLocaleString()}ea</span>
             </div>
           </div>
         </div>
@@ -205,6 +218,13 @@ export default function HospitalSpecificInventory({
           emptyMessage={!hasInventory() ? "현재 재고가 없습니다." : "검색 결과가 없습니다."}
           onRetry={refetch}
         />
+
+        {/* 제품정보 모달 */}
+        <ProductInfoModal
+          isOpen={isProductModalOpen}
+          onClose={() => setIsProductModalOpen(false)}
+          cfn={selectedCfn}
+        />
       </div>
     );
   }
@@ -216,7 +236,7 @@ export default function HospitalSpecificInventory({
       <div className="flex items-center justify-between w-full">
         <div className="flex items-center gap-4">
           <span className="font-semibold text-primary text-base">
-            {group.clientName}
+            재고 현황
           </span>
           <span className="text-sm text-text-secondary">
             {group.inventory.length}개 품목
@@ -237,7 +257,7 @@ export default function HospitalSpecificInventory({
         onRetry={() => {}}
       />
     ),
-    defaultExpanded: true
+    defaultExpanded: false
   }));
 
   return (
@@ -249,11 +269,7 @@ export default function HospitalSpecificInventory({
             {hospital.hospital_name}
           </h2>
           <div className="text-sm md:text-base text-text-secondary">
-            {groupedInventory.length > 0 
-              ? `${groupedInventory.length}개 거래처 • 총 재고: `
-              : "총 재고: "
-            }
-            <span className="font-semibold text-primary">{totalQuantity.toLocaleString()}ea</span>
+            총 재고: <span className="font-semibold text-primary">{totalQuantity.toLocaleString()}ea</span>
           </div>
         </div>
       </div>
@@ -293,31 +309,17 @@ export default function HospitalSpecificInventory({
         </div>
       </div>
 
-      {/* 거래처별 아코디언 */}
-      {loading ? (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-text-secondary">재고 정보를 불러오는 중...</p>
-        </div>
-      ) : error ? (
-        <div className="text-center py-8">
-          <div className="text-status-error-text mb-4">{error}</div>
-          <Button onClick={refetch} variant="primary">
-            다시 시도
-          </Button>
-        </div>
-      ) : accordionItems.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-text-secondary">
-            {!hasInventory() ? "현재 재고가 없습니다." : "검색 결과가 없습니다."}
-          </p>
-        </div>
-      ) : (
-        <Accordion
-          items={accordionItems}
-          allowMultiple={true}
-        />
-      )}
+      <Accordion
+        items={accordionItems}
+        allowMultiple={true}
+      />
+
+      {/* 제품정보 모달 */}
+      <ProductInfoModal
+        isOpen={isProductModalOpen}
+        onClose={() => setIsProductModalOpen(false)}
+        cfn={selectedCfn}
+      />
     </div>
   );
 }

@@ -12,11 +12,9 @@ interface ProductInfo {
   upn: string;
   description?: string;
   category?: string;
-  unit: string;
-  created_at?: string;
   clients?: {
     company_name: string;
-  } | null;
+  };
 }
 
 interface ProductInfoModalProps {
@@ -59,9 +57,7 @@ export default function ProductInfoModal({
           upn,
           description,
           category,
-          unit,
-          created_at,
-          clients(company_name)
+          clients!inner(company_name)
         `);
 
       if (productId) {
@@ -76,24 +72,13 @@ export default function ProductInfoModal({
         throw new Error("제품 정보를 찾을 수 없습니다.");
       }
 
-      // clients 배열에서 첫 번째 요소만 추출
-      const processedData = {
-        ...data,
-        clients: data.clients && data.clients.length > 0 ? data.clients[0] : null
-      };
-
-      setProduct(processedData);
+      setProduct(data);
     } catch (err) {
       console.error("제품 정보 조회 실패:", err);
       setError(err instanceof Error ? err.message : "제품 정보 조회에 실패했습니다.");
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "-";
-    return new Date(dateString).toLocaleDateString("ko-KR");
   };
 
   return (
@@ -118,54 +103,47 @@ export default function ProductInfoModal({
       )}
 
       {product && !loading && (
-        <div className="space-y-6">
-          {/* 기본 정보 카드 */}
-          <div className="bg-accent-light rounded-lg border border-accent-soft p-4">
-            <h3 className="text-lg font-semibold text-primary mb-4">기본 정보</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-3">
+        <div className="bg-white rounded-lg border border-accent-soft p-6">
+          <div className="space-y-6">
+            {/* 제품 기본 정보 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-text-secondary">CFN</label>
-                  <p className="text-base font-semibold text-primary mt-1">{product.cfn}</p>
+                  <label className="text-sm font-medium text-text-secondary block mb-1">CFN</label>
+                  <p className="text-lg font-semibold text-primary">{product.cfn}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-text-secondary">UPN</label>
-                  <p className="text-base text-text-primary mt-1 font-mono">{product.upn}</p>
+                  <label className="text-sm font-medium text-text-secondary block mb-1">UPN</label>
+                  <p className="text-base text-text-primary font-mono">{product.upn}</p>
                 </div>
+              </div>
+              <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-text-secondary">거래처</label>
-                  <p className="text-base text-text-primary mt-1">
+                  <label className="text-sm font-medium text-text-secondary block mb-1">거래처</label>
+                  <p className="text-base text-text-primary font-medium">
                     {product.clients?.company_name || "정보 없음"}
                   </p>
                 </div>
-              </div>
-              <div className="space-y-3">
                 <div>
-                  <label className="text-sm font-medium text-text-secondary">카테고리</label>
-                  <p className="text-base text-text-primary mt-1">
+                  <label className="text-sm font-medium text-text-secondary block mb-1">카테고리</label>
+                  <p className="text-base text-text-primary">
                     {product.category || "미분류"}
                   </p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-text-secondary">단위</label>
-                  <p className="text-base text-text-primary mt-1">{product.unit}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-text-secondary">등록일</label>
-                  <p className="text-base text-text-primary mt-1">{formatDate(product.created_at)}</p>
-                </div>
               </div>
             </div>
-          </div>
 
-          {/* 제품 설명 카드 */}
-          <div className="bg-white rounded-lg border border-accent-soft p-4">
-            <h3 className="text-lg font-semibold text-primary mb-3">제품 설명</h3>
-            <div className="bg-accent-light rounded-md p-3">
-              <p className="text-text-primary leading-relaxed">
-                {product.description || "제품 설명이 없습니다."}
-              </p>
-            </div>
+            {/* 제품 설명 */}
+            {product.description && (
+              <div className="border-t pt-6">
+                <label className="text-sm font-medium text-text-secondary block mb-2">제품 설명</label>
+                <div className="bg-accent-light rounded-md p-4">
+                  <p className="text-text-primary leading-relaxed">
+                    {product.description}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
