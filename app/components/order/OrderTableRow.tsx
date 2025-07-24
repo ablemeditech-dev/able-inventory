@@ -11,8 +11,7 @@ interface OrderItem {
 
 interface OrderTableRowProps {
   item: OrderItem;
-  rank?: number;
-  topHospital?: string;
+  hospitalRankings?: Array<{hospitalName: string, rank: number}>;
   showClientName?: boolean;
   onCfnClick?: (cfn: string) => void;
 }
@@ -22,8 +21,7 @@ interface OrderTableRowProps {
  */
 export const OrderTableRow: React.FC<OrderTableRowProps> = ({
   item,
-  rank,
-  topHospital,
+  hospitalRankings = [],
   showClientName = true,
   onCfnClick,
 }) => {
@@ -65,13 +63,12 @@ export const OrderTableRow: React.FC<OrderTableRowProps> = ({
       
       {/* 6개월 사용량 열 */}
       <td className="px-2 md:px-6 py-2 md:py-3 whitespace-nowrap">
-        <div className={`font-medium text-sm md:text-base ${rank ? 'text-primary' : 'text-text-secondary'} flex items-center gap-1 md:gap-2`}>
+        <div className={`font-medium text-sm md:text-base ${hospitalRankings.length > 0 ? 'text-primary' : 'text-text-secondary'} flex items-center gap-1 md:gap-2`}>
           <span>{item.six_months_usage.toLocaleString()}개</span>
           <StatusBadges
             totalQuantity={item.total_quantity}
             sixMonthsUsage={item.six_months_usage}
-            rank={rank}
-            topHospital={topHospital}
+            hospitalRankings={hospitalRankings}
           />
         </div>
       </td>

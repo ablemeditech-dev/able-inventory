@@ -236,7 +236,7 @@ export default function HospitalSpecificInventory({
       <div className="flex items-center justify-between w-full">
         <div className="flex items-center gap-4">
           <span className="font-semibold text-primary text-base">
-            재고 현황
+            {group.clientName}
           </span>
           <span className="text-sm text-text-secondary">
             {group.inventory.length}개 품목

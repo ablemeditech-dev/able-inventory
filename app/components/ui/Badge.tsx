@@ -1,7 +1,7 @@
 import React from 'react';
 
 // 배지 변형 타입
-export type BadgeVariant = 'default' | 'success' | 'warning' | 'error' | 'info' | 'outline' | 'stock-out' | 'low-stock' | 'rank' | 'hospital';
+export type BadgeVariant = 'default' | 'success' | 'warning' | 'error' | 'info' | 'outline' | 'stock-out' | 'low-stock' | 'rank' | 'hospital' | 'hospital-1' | 'hospital-2' | 'hospital-3' | 'hospital-4' | 'hospital-5' | 'hospital-6' | 'hospital-7' | 'hospital-8';
 
 // 배지 크기 타입
 export type BadgeSize = 'sm' | 'md' | 'lg';
@@ -31,6 +31,15 @@ const badgeVariants = {
   'low-stock': 'bg-orange-500 text-white',
   'rank': 'bg-blue-100 text-blue-800',
   'hospital': 'bg-green-100 text-green-800',
+  // 병원별 색상 팔레트
+  'hospital-1': 'bg-blue-100 text-blue-800',
+  'hospital-2': 'bg-green-100 text-green-800', 
+  'hospital-3': 'bg-purple-100 text-purple-800',
+  'hospital-4': 'bg-pink-100 text-pink-800',
+  'hospital-5': 'bg-indigo-100 text-indigo-800',
+  'hospital-6': 'bg-teal-100 text-teal-800',
+  'hospital-7': 'bg-orange-100 text-orange-800',
+  'hospital-8': 'bg-cyan-100 text-cyan-800',
 };
 
 const badgeSizes = {
@@ -118,3 +127,28 @@ export const RankBadge: React.FC<Omit<BadgeProps, 'variant'>> = (props) => (
 export const HospitalBadge: React.FC<Omit<BadgeProps, 'variant'>> = (props) => (
   <Badge {...props} variant="hospital" size="sm" />
 ); 
+
+// 병원명을 기반으로 일관된 색상 variant를 반환하는 함수
+export const getHospitalBadgeVariant = (hospitalName: string): BadgeVariant => {
+  // 병원명을 해시하여 0-7 범위의 숫자로 변환
+  let hash = 0;
+  for (let i = 0; i < hospitalName.length; i++) {
+    const char = hospitalName.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // 32비트 정수로 변환
+  }
+  
+  // 절댓값으로 변환하고 8개의 색상 중 하나 선택
+  const colorIndex = (Math.abs(hash) % 8) + 1;
+  return `hospital-${colorIndex}` as BadgeVariant;
+};
+
+// 병원별 랭킹 배지 컴포넌트
+export interface HospitalRankBadgeProps extends Omit<BadgeProps, 'variant'> {
+  hospitalName: string;
+}
+
+export const HospitalRankBadge: React.FC<HospitalRankBadgeProps> = ({ hospitalName, ...props }) => {
+  const variant = getHospitalBadgeVariant(hospitalName);
+  return <Badge {...props} variant={variant} size="sm" />;
+}; 

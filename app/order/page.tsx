@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { useOrderData } from "../../hooks/useOrderData";
 import { useTableSort } from "../../hooks/useTableSort";
-import { getTopFiveRanking } from "../../utils/ranking";
 import { OrderTableRow } from "../components/order/OrderTableRow";
 import Button from "../components/ui/Button";
 import Alert from "../components/ui/Alert";
@@ -26,7 +25,7 @@ export default function OrderPage() {
     orderItems,
     setOrderItems,
     originalOrderItems,
-    hospitalTopUsage,
+    hospitalRankings,
     loading,
     error,
   } = useOrderData();
@@ -61,9 +60,6 @@ export default function OrderPage() {
     
     return isStockOut || isLowStock;
   };
-
-  // 순위 계산 (매번 계산하지 않도록 최적화 가능)
-  const rankingMap = getTopFiveRanking(orderItems);
 
   // 거래처별 오더 데이터 그룹화
   const groupedOrders = useMemo(() => {
@@ -104,58 +100,61 @@ export default function OrderPage() {
   }, [orderItems]);
 
   // 테이블 컴포넌트 생성 함수
-  const createOrderTable = (orders: any[], showClientColumn: boolean = true) => (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="min-w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-2 md:px-6 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                CFN
-              </th>
-              {showClientColumn && (
+  const createOrderTable = (orders: any[], showClientColumn: boolean = true, clientName?: string) => {
+    // 병원(거래처)별 Top3 계산 - 제거 (이제 전역 병원별 랭킹 사용)
+    
+    return (
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-gray-50">
+              <tr>
                 <th className="px-2 md:px-6 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  거래처
+                  CFN
                 </th>
-              )}
-              <th className="px-2 md:px-6 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                <button
-                  className="flex items-center text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700"
-                  onClick={() => handleSort('quantity', orders, setOrderItems)}
-                >
-                  <span className="hidden sm:inline">재고 수량</span>
-                  <span className="sm:hidden">수량</span>
-                  {renderSortIcon('quantity')}
-                </button>
-              </th>
-              <th className="px-2 md:px-6 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                <button
-                  className="flex items-center text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700"
-                  onClick={() => handleSort('usage', orders, setOrderItems)}
-                >
-                  <span className="hidden sm:inline">6개월 사용량</span>
-                  <span className="sm:hidden">사용량</span>
-                  {renderSortIcon('usage')}
-                </button>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {orders.map((item, index) => (
-              <OrderTableRow 
-                key={`${item.cfn}-${item.client_id || item.client_name}`}
-                item={item}
-                rank={rankingMap.get(item.cfn)}
-                topHospital={hospitalTopUsage.get(item.cfn) || ''}
-                showClientName={showClientColumn}
-                onCfnClick={handleCfnClick}
-              />
-            ))}
-          </tbody>
-        </table>
+                {showClientColumn && (
+                  <th className="px-2 md:px-6 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    거래처
+                  </th>
+                )}
+                <th className="px-2 md:px-6 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <button
+                    className="flex items-center text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700"
+                    onClick={() => handleSort('quantity', orders, setOrderItems)}
+                  >
+                    <span className="hidden sm:inline">재고 수량</span>
+                    <span className="sm:hidden">수량</span>
+                    {renderSortIcon('quantity')}
+                  </button>
+                </th>
+                <th className="px-2 md:px-6 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <button
+                    className="flex items-center text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700"
+                    onClick={() => handleSort('usage', orders, setOrderItems)}
+                  >
+                    <span className="hidden sm:inline">6개월 사용량</span>
+                    <span className="sm:hidden">사용량</span>
+                    {renderSortIcon('usage')}
+                  </button>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {orders.map((item, index) => (
+                <OrderTableRow 
+                  key={`${item.cfn}-${item.client_id || item.client_name}`}
+                  item={item}
+                  hospitalRankings={hospitalRankings.get(item.cfn) || []}
+                  showClientName={showClientColumn}
+                  onCfnClick={handleCfnClick}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // 총 재고 수량 계산
   const totalQuantity = useMemo(() => {
@@ -193,7 +192,7 @@ export default function OrderPage() {
               <div className="text-lg">로딩 중...</div>
             </div>
           ) : (
-            createOrderTable(orderItems, false) // 거래처 컬럼 숨김
+            createOrderTable(groupedOrders[0].orders, false, groupedOrders[0].clientName) // 거래처 컬럼 숨김
           )}
 
           {/* 제품정보 모달 */}
@@ -230,7 +229,7 @@ export default function OrderPage() {
         </div>
       </div>
     ),
-    content: createOrderTable(group.orders, false), // 거래처 컬럼 숨김
+    content: createOrderTable(group.orders, false, group.clientName), // 거래처 컬럼 숨김
     defaultExpanded: false
   }));
 

@@ -1,21 +1,19 @@
-import { StockOutBadge, LowStockBadge, RankBadge, HospitalBadge } from '../ui/Badge';
+import { StockOutBadge, LowStockBadge, HospitalRankBadge } from '../ui/Badge';
 
 interface StatusBadgesProps {
   totalQuantity: number;
   sixMonthsUsage: number;
-  rank?: number;
-  topHospital?: string;
+  hospitalRankings?: Array<{hospitalName: string, rank: number}>;
 }
 
 /**
  * 재고 상태 배지들을 렌더링하는 컴포넌트
- * 재고 부족, 재고 부족 예정, Top 순위, 병원명 배지를 포함
+ * 재고 부족, 재고 부족 예정, 병원별 Top 순위 배지를 포함
  */
 export const StatusBadges: React.FC<StatusBadgesProps> = ({
   totalQuantity,
   sixMonthsUsage,
-  rank,
-  topHospital,
+  hospitalRankings = [],
 }) => {
   const monthlyAverageUsage = sixMonthsUsage / 6;
   const isStockOut = totalQuantity === 0;
@@ -43,19 +41,16 @@ export const StatusBadges: React.FC<StatusBadgesProps> = ({
         </LowStockBadge>
       )}
       
-      {/* Top 순위 배지 */}
-      {rank && (
-        <RankBadge className="hidden md:inline">
-          Top {rank}
-        </RankBadge>
-      )}
-      
-      {/* 병원명 배지 */}
-      {topHospital && (
-        <HospitalBadge className="hidden md:inline">
-          {topHospital}
-        </HospitalBadge>
-      )}
+      {/* 병원별 Top 순위 배지들 */}
+      {hospitalRankings.map((ranking, index) => (
+        <HospitalRankBadge 
+          key={`${ranking.hospitalName}-${ranking.rank}`} 
+          hospitalName={ranking.hospitalName}
+          className="hidden md:inline"
+        >
+          {ranking.hospitalName} Top {ranking.rank}
+        </HospitalRankBadge>
+      ))}
     </div>
   );
 };

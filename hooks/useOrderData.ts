@@ -15,7 +15,7 @@ interface OrderItem {
 export const useOrderData = () => {
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [originalOrderItems, setOriginalOrderItems] = useState<OrderItem[]>([]);
-  const [hospitalTopUsage, setHospitalTopUsage] = useState<Map<string, string>>(new Map());
+  const [hospitalRankings, setHospitalRankings] = useState<Map<string, Array<{hospitalName: string, rank: number}>>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
 
@@ -192,6 +192,7 @@ export const useOrderData = () => {
 
         if (!hospitalError && hospitalMovements) {
           const hospitalCfnUsage = new Map<string, Map<string, number>>();
+          const hospitalNames = new Map<string, string>();
           
           hospitalMovements.forEach((movement: any) => {
             const product = productMap.get(movement.product_id);
@@ -219,6 +220,25 @@ export const useOrderData = () => {
             const cfn = product.cfn;
             const quantity = movement.quantity || 0;
 
+            // 병원명 저장
+            if (!hospitalNames.has(hospitalId)) {
+              // notes 필드에서 병원명 추출 (예: "병원: 한양대 (담당자: 정미화)" -> "한양대")
+              let hospitalName = "";
+              if (typeof notes === 'string' && notes.includes("병원:")) {
+                const match = notes.match(/병원:\s*([^(]*)/);
+                if (match) {
+                  hospitalName = match[1].trim();
+                }
+              }
+              
+              // notes에서 추출 실패 시 다른 필드 사용
+              if (!hospitalName) {
+                hospitalName = locationData?.location_name || locationData?.facility_name || locationData?.hospital_name || locationData?.company_name || "병원";
+              }
+              
+              hospitalNames.set(hospitalId, hospitalName);
+            }
+
             if (!hospitalCfnUsage.has(hospitalId)) {
               hospitalCfnUsage.set(hospitalId, new Map());
             }
@@ -228,56 +248,40 @@ export const useOrderData = () => {
             hospitalMap.set(cfn, currentUsage + quantity);
           });
 
-          // 각 병원별 최다 사용 CFN 찾기
-          const topCfnByHospital = new Map<string, string>();
+          // 각 병원별 Top 3 CFN 찾기 및 CFN별 병원 순위 매핑
+          const cfnHospitalRankings = new Map<string, Array<{hospitalName: string, rank: number}>>();
+          
           hospitalCfnUsage.forEach((cfnUsageMap, hospitalId) => {
-            let maxUsage = 0;
-            let topCfn = "";
-            let hospitalName = "";
+            const hospitalName = hospitalNames.get(hospitalId) || "병원";
+            
+            // 해당 병원의 CFN들을 사용량 순으로 정렬
+            const sortedCfns = Array.from(cfnUsageMap.entries())
+              .filter(([cfn, usage]) => usage > 0)
+              .sort(([, usageA], [, usageB]) => usageB - usageA)
+              .slice(0, 3); // Top 3만
 
-            // 해당 병원의 최다 사용 CFN 찾기
-            cfnUsageMap.forEach((usage, cfn) => {
-              if (usage > maxUsage) {
-                maxUsage = usage;
-                topCfn = cfn;
-              }
-            });
-
-            // 병원 이름 찾기 (notes 필드에서 추출)
-            const hospital = hospitalMovements.find((m: any) => m.from_location_id === hospitalId);
-            if (hospital?.locations) {
-              const loc = hospital.locations;
+            // 각 CFN의 순위 정보 저장
+            sortedCfns.forEach(([cfn, usage], index) => {
+              const rank = index + 1;
               
-              // location이 배열인지 객체인지 확인하고 적절히 처리
-              const locData = Array.isArray(loc) ? loc[0] : loc;
-              if (locData) {
-                // notes 필드에서 병원명 추출 (예: "병원: 한양대 (담당자: 정미화)" -> "한양대")
-                const notes = locData?.notes || '';
-                if (typeof notes === 'string' && notes.includes("병원:")) {
-                  const match = notes.match(/병원:\s*([^(]*)/);
-                  if (match) {
-                    hospitalName = match[1].trim();
-                  }
-                }
-                
-                // notes에서 추출 실패 시 다른 필드 사용
-                if (!hospitalName) {
-                  hospitalName = locData?.location_name || locData?.facility_name || locData?.hospital_name || locData?.company_name || "병원";
-                }
+              if (!cfnHospitalRankings.has(cfn)) {
+                cfnHospitalRankings.set(cfn, []);
               }
-            }
-
-            if (topCfn && hospitalName) {
-              topCfnByHospital.set(topCfn, hospitalName);
-            }
+              
+              cfnHospitalRankings.get(cfn)!.push({
+                hospitalName,
+                rank
+              });
+            });
           });
 
-          // 병원별 최다 사용 CFN 정보 저장
-          setHospitalTopUsage(topCfnByHospital);
+          // CFN별 병원 순위 정보 저장
+          setHospitalRankings(cfnHospitalRankings);
         }
       } catch (hospitalErr) {
         // 병원별 계산 실패해도 전체 기능은 계속 작동하도록 함
-        setHospitalTopUsage(new Map());
+        console.error("병원별 순위 계산 실패:", hospitalErr);
+        setHospitalRankings(new Map());
       }
 
       // 모든 CFN 데이터 생성 (재고가 0인 것도 포함)
@@ -311,7 +315,7 @@ export const useOrderData = () => {
     orderItems,
     setOrderItems,
     originalOrderItems,
-    hospitalTopUsage,
+    hospitalRankings,
     loading,
     error,
     refetch: fetchOrderData,
