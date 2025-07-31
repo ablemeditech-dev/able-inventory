@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "../../../lib/supabase";
+import { supabase, clientsAPI, productsAPI } from "../../../lib/supabase";
 import ManualPageLayout from "../../components/layout/ManualPageLayout";
 import Alert from "../../components/ui/Alert";
 import { SYSTEM_CONSTANTS } from "../../../lib/constants";
@@ -11,6 +11,11 @@ import { SYSTEM_CONSTANTS } from "../../../lib/constants";
 interface Hospital {
   id: string;
   hospital_name: string;
+}
+
+interface Client {
+  id: string;
+  company_name: string;
 }
 
 interface Product {
@@ -32,10 +37,12 @@ export default function ManualOutboundPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [hospitalsLoading, setHospitalsLoading] = useState(true);
+  const [clientsLoading, setClientsLoading] = useState(true);
   const [productsLoading, setProductsLoading] = useState(false);
   const [inventoryLoading, setInventoryLoading] = useState(false);
   const [error, setError] = useState("");
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
 
@@ -43,6 +50,7 @@ export default function ManualOutboundPage() {
   const [formData, setFormData] = useState({
     outbound_date: new Date().toISOString().split("T")[0],
     hospital_id: "",
+    client_id: "",
     product_id: "",
     lot_number: "",
     ubd_date: "",
@@ -55,10 +63,20 @@ export default function ManualOutboundPage() {
     loadHospitals();
   }, []);
 
-  // 제품 목록 로드
+  // 거래처 목록 로드
   useEffect(() => {
-    loadProducts();
+    loadClients();
   }, []);
+
+  // 거래처 선택 시 해당 거래처의 제품 로드
+  useEffect(() => {
+    if (formData.client_id) {
+      loadProductsByClient(formData.client_id);
+    } else {
+      setProducts([]);
+      setFormData(prev => ({ ...prev, product_id: "", lot_number: "", ubd_date: "" }));
+    }
+  }, [formData.client_id]);
 
   // 제품 선택 시 해당 제품의 재고 로드
   useEffect(() => {
@@ -66,6 +84,7 @@ export default function ManualOutboundPage() {
       loadInventory(formData.product_id);
     } else {
       setInventory([]);
+      setFormData(prev => ({ ...prev, lot_number: "", ubd_date: "" }));
     }
   }, [formData.product_id]);
 
@@ -86,14 +105,23 @@ export default function ManualOutboundPage() {
     }
   };
 
-  const loadProducts = async () => {
+  const loadClients = async () => {
+    try {
+      const { data, error } = await clientsAPI.getAll();
+      if (error) throw error;
+      setClients(data || []);
+    } catch (err) {
+      console.error("거래처 로드 실패:", err);
+      setError("거래처 목록을 불러오는데 실패했습니다.");
+    } finally {
+      setClientsLoading(false);
+    }
+  };
+
+  const loadProductsByClient = async (clientId: string) => {
     setProductsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("products")
-        .select("id, cfn, description")
-        .order("cfn");
-
+      const { data, error } = await productsAPI.getByClient(clientId);
       if (error) throw error;
       setProducts(data || []);
     } catch (err) {
@@ -177,7 +205,20 @@ export default function ManualOutboundPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // 거래처 변경 시 제품과 재고 초기화
+    if (name === "client_id") {
+      setFormData(prev => ({ 
+        ...prev, 
+        [name]: value,
+        product_id: "",
+        lot_number: "",
+        ubd_date: "",
+        quantity: ""
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleInventorySelect = (value: string) => {
@@ -298,12 +339,43 @@ export default function ManualOutboundPage() {
           )}
         </div>
 
+        {/* 거래처 선택 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            거래처 <span className="text-red-500">*</span>
+          </label>
+          {clientsLoading ? (
+            <div className="text-sm text-text-secondary">
+              거래처 목록 로딩 중...
+            </div>
+          ) : (
+            <select
+              name="client_id"
+              value={formData.client_id}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
+              required
+            >
+              <option value="">거래처를 선택하세요</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.company_name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
         {/* 제품 선택 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             CFN <span className="text-red-500">*</span>
           </label>
-          {productsLoading ? (
+          {!formData.client_id ? (
+            <div className="text-sm text-text-secondary">
+              먼저 거래처를 선택해주세요
+            </div>
+          ) : productsLoading ? (
             <div className="text-sm text-text-secondary">
               제품 목록 로딩 중...
             </div>
@@ -351,7 +423,7 @@ export default function ManualOutboundPage() {
               </select>
             ) : (
               <div className="text-sm text-text-secondary">
-                먼저 CFN을 선택해주세요
+                선택한 제품의 재고가 없습니다
               </div>
             )}
           </div>

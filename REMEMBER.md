@@ -1,5 +1,85 @@
 # 📝 작업 기록 (REMEMBER.md)
 
+## 📅 2024년 12월 22일 (일)
+
+### 🎯 오늘의 목표
+
+- [x] `/outbound/manual` 페이지 거래처 선택 기능 추가
+- [x] `/statistics/graphs` 페이지 CFN 분석 로직 수정
+- [x] 그래프 UI/UX 텍스트 개선
+
+### ✅ 완료된 작업
+
+- **출고관리 거래처 필터링 기능 구현**
+
+  - **문제점**: `/outbound/manual`에서 모든 거래처 제품이 CFN 드롭다운에 섞여서 너무 길어짐
+  - **해결방안**: 거래처 선택 필드 추가하여 CFN을 거래처별로 필터링
+  - **입력 순서**: 출고일자 → 출고 병원 → **거래처** → CFN → LOT → 수량
+  - **기술 구현**: `clientsAPI.getAll()`, `productsAPI.getByClient()` 활용
+  - **스마트 초기화**: 거래처 변경 시 제품/LOT/수량 자동 초기화
+
+- **통계 그래프 CFN 분석 로직 수정**
+
+  - **문제점**: '가장 널리 사용되는 CFN' 계산에서 `hospitalCount` 필드 누락
+  - **해결방안**: CFN별 병원 추적 시스템 구현
+  - **핵심 로직**: `cfnHospitals = new Map<string, Set<string>>()`으로 CFN별 병원 집합 관리
+  - **인사이트 개선**:
+    - "가장 많이 사용되는 CFN": 총 사용량 기준
+    - "가장 널리 사용되는 CFN": 병원 수 기준으로 명확히 구분
+
+- **그래프 UI/UX 텍스트 개선**
+
+  - **그래프 내 텍스트**: `1250개 (15개 병원)` → `1250EA in 15 hospitals`
+  - **인사이트 제목**: `📊 인사이트` → `인사이트` (이모지 제거)
+  - 더 간결하고 국제적인 스타일로 개선
+
+### 🔧 기술적 세부사항
+
+- **거래처별 제품 필터링**:
+
+  ```typescript
+  // 거래처 선택 시 해당 거래처 제품만 로드
+  useEffect(() => {
+    if (formData.client_id) {
+      loadProductsByClient(formData.client_id);
+    }
+  }, [formData.client_id]);
+  ```
+
+- **CFN별 병원 추적**:
+
+  ```typescript
+  const cfnHospitals = new Map<string, Set<string>>();
+  cfnHospitals.get(cfn)!.add(hospitalName);
+  hospitalCount: cfnHospitals.get(cfn)?.size || 0;
+  ```
+
+- **수정된 파일들**:
+  - `app/outbound/manual/page.tsx` (거래처 선택 기능)
+  - `app/statistics/graphs/page.tsx` (CFN 분석 로직 + UI 텍스트)
+
+### 🐛 해결된 이슈
+
+- 출고 시 CFN 선택의 복잡성 문제 해결
+- 통계 그래프의 잘못된 "널리 사용되는 CFN" 계산 수정
+- `hospitalCount` 필드 누락으로 인한 런타임 에러 해결
+- 중복된 복잡한 계산 로직 정리
+
+### 💡 배운 점
+
+- **사용자 피드백의 중요성**: "CFN 드롭다운이 너무 길다"는 실제 사용성 문제
+- **데이터 구조 설계**: Set을 활용한 중복 제거와 효율적인 카운팅
+- **UI 텍스트의 임팩트**: 간단한 텍스트 변경으로도 전체적인 느낌 개선
+- **점진적 개선**: 기존 로직을 완전히 바꾸지 않고 필요한 부분만 보완
+
+### 📋 내일 할 일
+
+- [ ] 다른 manual 페이지들도 거래처 필터링 적용 검토
+- [ ] 통계 그래프 사용자 피드백 수집
+- [ ] 추가 UI/UX 개선사항 검토
+
+---
+
 ## 📅 2024년 12월 21일 (토)
 
 ### 🎯 오늘의 목표
@@ -48,15 +128,40 @@
   - 거래처명 포함 조회
   ```
 
+- **병원별 랭킹 시스템**:
+
+  ```typescript
+  // hospitalRankings: Map<string, Array<{hospitalName: string, rank: number}>>
+  // CFN별로 어느 병원에서 몇 순위인지 저장
+  ```
+
+- **색상 해시 알고리즘**:
+
+  ```typescript
+  // 병원명 문자열 → 해시값 → 0-7 범위 → hospital-{1-8} variant
+  const getHospitalBadgeVariant = (hospitalName: string): BadgeVariant
+  ```
+
 - **새로 생성된 파일**:
 
   - `app/components/modals/ProductInfoModal.tsx`
+
+- **수정된 파일들**:
+
+  - `hooks/useOrderData.ts` (병원별 랭킹 로직 추가)
+  - `app/components/ui/Badge.tsx` (병원별 색상 시스템)
+  - `app/components/order/OrderTableRow.tsx` (랭킹 데이터 전달)
+  - `app/components/order/StatusBadges.tsx` (배지 렌더링)
+  - `app/components/inventory/AbleInventory.tsx` (아코디언 타이틀)
+  - `app/components/inventory/HospitalSpecificInventory.tsx` (아코디언 타이틀)
 
 - **주요 기능**:
   - `BaseModal` 컴포넌트 활용한 일관된 모달 UI
   - `LoadingSpinner` 컴포넌트로 로딩 상태 표시
   - Supabase 연동으로 실시간 제품 정보 조회
   - 반응형 디자인 (모바일/데스크톱 최적화)
+  - **병원별 개별 랭킹 시스템**: 각 병원에서 독립적인 Top 3 계산
+  - **일관된 색상 할당**: 병원명 해시 기반 자동 색상 매칭
 
 ### 🐛 해결된 이슈
 
@@ -67,6 +172,14 @@
   - 문제: `clients` 필드가 `undefined`만 허용했지만 `null` 할당으로 타입 불일치
   - 해결: `ProductInfo` 인터페이스에서 `clients?: { company_name: string; } | null`로 수정
   - 결과: 모든 케이스(객체, null, undefined) 안전하게 처리
+- **병원별 랭킹 시스템 데이터 구조 설계**
+  - 문제: 기존 `hospitalTopUsage: Map<string, string>` (CFN → 병원명)으로는 Top 3 표현 불가
+  - 해결: `hospitalRankings: Map<string, Array<{hospitalName: string, rank: number}>>`로 변경
+  - 결과: 하나의 CFN이 여러 병원에서 상위권일 때 모든 배지 표시 가능
+- **아코디언 타이틀 하드코딩 문제**
+  - 문제: '재고 현황'으로 하드코딩되어 어떤 거래처 재고인지 구분 불가
+  - 해결: `{group.clientName}`으로 동적 표시
+  - 결과: 각 아코디언이 명확히 구분되는 사용자 경험 개선
 
 ### 💡 배운 점
 
@@ -74,12 +187,40 @@
 - 사용자 중심의 UI 설계 (불필요한 기술적 정보 제거)
 - 재사용 가능한 모달 컴포넌트의 활용
 - 일관된 테마 적용을 통한 사용자 경험 통일
+- **데이터 그룹핑과 랭킹 시스템**: 복잡한 비즈니스 로직의 효율적 구현
+- **해시 기반 색상 할당**: 일관성과 자동화를 통한 확장 가능한 UI 시스템
+- **사용자 피드백의 중요성**: 기술적 완성도보다 실제 사용성 우선
+- **컴포넌트 재설계**: 기존 시스템을 깨뜨리지 않고 점진적 개선하는 방법
+
+- **병원별 Top1,2,3 배지 시스템 구현**
+
+  - 기존 전체 기준 Top1,2,3 배지를 **각 병원별 개별 랭킹**으로 변경
+  - `useOrderData.ts`에서 `hospitalTopUsage` → `hospitalRankings`로 대폭 수정
+  - 각 병원에서 6개월 사용량 기준 **상위 3개 제품**에만 배지 표시
+  - **배지 형태**: "서울아산병원 Top 1", "삼성서울병원 Top 2" 등
+  - CFN별로 여러 병원에서 상위권이면 **모든 배지 동시 표시**
+
+- **병원별 색상 배지 시스템 구현**
+
+  - `Badge.tsx`에 **8가지 병원별 색상 팔레트** 추가 (`hospital-1` ~ `hospital-8`)
+  - **해시 기반 색상 할당**: 병원명을 해시하여 일관된 고유 색상 자동 할당
+  - `HospitalRankBadge` 컴포넌트 새로 생성
+  - **색상 팔레트**: 파란색, 초록색, 보라색, 핑크색, 남색, 청록색, 주황색, 시안색
+  - 같은 병원은 항상 같은 색상, 다른 병원은 서로 다른 색상
+
+- **인벤토리 아코디언 타이틀 수정**
+
+  - `/inventory` 페이지의 ABLE 중앙창고와 병원별 재고에서 아코디언 타이틀 개선
+  - **변경**: "재고 현황" → **실제 거래처명** ("DIO medical", "삼성서울병원" 등)
+  - `AbleInventory.tsx`, `HospitalSpecificInventory.tsx` 수정
+  - 각 아코디언이 어떤 거래처의 재고인지 **명확하게 구분** 가능
 
 ### 📋 내일 할 일
 
 - [ ] 다른 페이지들에 ProductInfoModal 적용 (inventory, order 등)
 - [ ] 제품 정보 모달 사용성 테스트
 - [ ] 추가 제품 정보 필드 검토
+- [ ] 병원별 색상 배지 시스템 사용자 피드백 수집
 
 ---
 
@@ -396,7 +537,7 @@
 
 ## 📊 프로젝트 통계
 
-- **총 작업일**: 2일
-- **완료된 기능**: 8개
-- **리팩토링된 파일**: 14개
-- **해결된 이슈**: 8개
+- **총 작업일**: 4일
+- **완료된 기능**: 15개
+- **리팩토링된 파일**: 22개
+- **해결된 이슈**: 15개

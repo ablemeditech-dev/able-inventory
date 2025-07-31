@@ -44,6 +44,7 @@ export default function StatisticsGraphsPage() {
     const hospitalUsage = new Map<string, number>();
     const cfnStock = new Map<string, number>();
     const cfnUsage = new Map<string, number>();
+    const cfnHospitals = new Map<string, Set<string>>(); // CFN별 병원 Set 추가
 
     movements.forEach((movement) => {
       const product = productMap.get(movement.product_id);
@@ -91,6 +92,12 @@ export default function StatisticsGraphsPage() {
 
           // CFN별 사용량
           cfnUsage.set(cfn, (cfnUsage.get(cfn) || 0) + quantity);
+          
+          // CFN별 병원 집합 추가
+          if (!cfnHospitals.has(cfn)) {
+            cfnHospitals.set(cfn, new Set());
+          }
+          cfnHospitals.get(cfn)!.add(hospitalName);
         }
       }
     });
@@ -144,6 +151,7 @@ export default function StatisticsGraphsPage() {
         .map(([cfn, usageCount]) => ({
           cfn,
           usageCount,
+          hospitalCount: cfnHospitals.get(cfn)?.size || 0, // 병원 수 추가
         })),
     };
   };
@@ -430,7 +438,7 @@ export default function StatisticsGraphsPage() {
                           style={{ width: `${percentage}%` }}
                         />
                         <div className="absolute inset-0 flex items-center justify-center text-sm font-medium text-white">
-                          {cfn.usageCount}개 {cfn.hospitalCount ? `(${cfn.hospitalCount}개 병원)` : ''}
+                          {cfn.usageCount}EA in {cfn.hospitalCount || 0} hospitals
                         </div>
                       </div>
                     </div>
@@ -438,15 +446,24 @@ export default function StatisticsGraphsPage() {
                 })}
               </div>
               
-                             {/* CFN 사용량 인사이트 */}
-               <div className="mt-6 p-4 bg-accent-soft/10 rounded-lg">
-                 <h4 className="font-semibold text-primary mb-2">📊 인사이트</h4>
-                 <ul className="space-y-1 text-sm text-text-secondary">
-                   <li>• 가장 많이 사용되는 CFN: <span className="font-medium text-primary">{data.topCFNs[0]?.cfn || 'N/A'}</span></li>
-                   <li>• 가장 널리 사용되는 CFN: <span className="font-medium text-primary">{data.topCFNs.length > 0 ? data.topCFNs.reduce((max, cfn) => (cfn.hospitalCount || 0) > (max.hospitalCount || 0) ? cfn : max).cfn : 'N/A'}</span> ({data.topCFNs.length > 0 ? data.topCFNs.reduce((max, cfn) => (cfn.hospitalCount || 0) > (max.hospitalCount || 0) ? cfn : max).hospitalCount || 0 : 0}개 병원)</li>
-                   <li>• 상위 5개 CFN이 전체 사용량의 <span className="font-medium text-primary">{data.topCFNs.length > 0 ? Math.round((data.topCFNs.slice(0, 5).reduce((sum, cfn) => sum + cfn.usageCount, 0) / data.topCFNs.reduce((sum, cfn) => sum + cfn.usageCount, 0)) * 100) : 0}%</span> 차지</li>
-                 </ul>
-               </div>
+                                           {/* CFN 사용량 인사이트 */}
+              <div className="mt-6 p-4 bg-accent-soft/10 rounded-lg">
+                <h4 className="font-semibold text-primary mb-2">인사이트</h4>
+                <ul className="space-y-1 text-sm text-text-secondary">
+                  <li>• 가장 많이 사용되는 CFN: <span className="font-medium text-primary">{data.topCFNs[0]?.cfn || 'N/A'}</span> ({data.topCFNs[0]?.usageCount || 0}개)</li>
+                  {(() => {
+                    const mostWidelyUsed = data.topCFNs.length > 0 
+                      ? data.topCFNs.reduce((max, cfn) => (cfn.hospitalCount || 0) > (max.hospitalCount || 0) ? cfn : max)
+                      : null;
+                    return mostWidelyUsed ? (
+                      <li>• 가장 널리 사용되는 CFN: <span className="font-medium text-primary">{mostWidelyUsed.cfn}</span> ({mostWidelyUsed.hospitalCount}개 병원)</li>
+                    ) : (
+                      <li>• 가장 널리 사용되는 CFN: <span className="font-medium text-primary">N/A</span></li>
+                    );
+                  })()}
+                  <li>• 상위 5개 CFN이 전체 사용량의 <span className="font-medium text-primary">{data.topCFNs.length > 0 ? Math.round((data.topCFNs.slice(0, 5).reduce((sum, cfn) => sum + cfn.usageCount, 0) / data.topCFNs.reduce((sum, cfn) => sum + cfn.usageCount, 0)) * 100) : 0}%</span> 차지</li>
+                </ul>
+              </div>
             </div>
           )}
 
