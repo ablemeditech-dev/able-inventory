@@ -7,6 +7,7 @@
 - [x] `/outbound/manual` 페이지 거래처 선택 기능 추가
 - [x] `/statistics/graphs` 페이지 CFN 분석 로직 수정
 - [x] 그래프 UI/UX 텍스트 개선
+- [x] 출고이력/UDI 페이지 데이터 조회 문제 해결
 
 ### ✅ 완료된 작업
 
@@ -33,6 +34,15 @@
   - **인사이트 제목**: `📊 인사이트` → `인사이트` (이모지 제거)
   - 더 간결하고 국제적인 스타일로 개선
 
+- **페이지네이션 로직 문제로 인한 목록 조회 실패 해결**
+
+  - **문제점**: `/outbound/manual` 수정 후 `/outbound`, `/udi`, `/inbound`, `/exchange` 페이지에서 이력이 안 보이는 문제
+  - **원인 분석**: `usePagination` 훅에서 `initialMonths` 설정과 무관하게 항상 현재 월만 조회하는 로직 오류
+  - **해결방안**: `getDateRange` 함수 로직 수정하여 `initialMonths`만큼 과거 월부터 현재까지 조회
+  - **적용 페이지**: `/outbound`, `/udi`, `/inbound`, `/exchange` 모두 `initialMonths: 3`으로 확장
+  - **디버깅 개선**: 각 페이지별 실제 조회 범위와 결과를 콘솔에서 확인할 수 있는 로그 추가
+  - **추가 개선**: `DATABASE.md` 파일 생성으로 데이터베이스 스키마 문서화
+
 ### 🔧 기술적 세부사항
 
 - **거래처별 제품 필터링**:
@@ -54,9 +64,26 @@
   hospitalCount: cfnHospitals.get(cfn)?.size || 0;
   ```
 
+- **월 단위 페이지네이션 수정**:
+
+  ```typescript
+  // 수정 전: 항상 현재 월만 조회
+  const startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  // 수정 후: initialMonths만큼 과거부터 조회
+  const targetMonth = today.getMonth() - (initialMonths - 1);
+  const startDate = new Date(finalYear, finalMonth, 1);
+  ```
+
 - **수정된 파일들**:
   - `app/outbound/manual/page.tsx` (거래처 선택 기능)
   - `app/statistics/graphs/page.tsx` (CFN 분석 로직 + UI 텍스트)
+  - `hooks/usePagination.ts` (날짜 범위 계산 로직 수정)
+  - `app/outbound/page.tsx` (디버깅 로그 추가, initialMonths: 3)
+  - `app/udi/page.tsx` (디버깅 로그 추가, initialMonths: 3)
+  - `app/inbound/page.tsx` (디버깅 로그 추가, initialMonths: 3)
+  - `app/exchange/page.tsx` (디버깅 로그 추가, initialMonths: 3)
+  - `DATABASE.md` (신규 생성)
 
 ### 🐛 해결된 이슈
 
@@ -64,6 +91,18 @@
 - 통계 그래프의 잘못된 "널리 사용되는 CFN" 계산 수정
 - `hospitalCount` 필드 누락으로 인한 런타임 에러 해결
 - 중복된 복잡한 계산 로직 정리
+- **목록 페이지 데이터 조회 실패**: `usePagination` 훅의 날짜 범위 계산 오류로 4개 페이지 이력 안보이는 문제 수정
+
+- **출고이력/UDI 페이지 데이터 조회 문제 해결**
+
+  - **문제점**: `/outbound`와 `/udi` 페이지에서 출고이력이 안 보이는 문제 발생
+  - **원인**: `usePagination` 훅에서 `initialMonths` 값을 설정해도 항상 현재 월만 조회
+  - **해결방안**: `getDateRange` 함수 수정하여 `initialMonths`만큼 과거 월부터 현재까지 조회
+  - **기술 구현**:
+    - 날짜 범위 계산 로직 개선 (현재 월 → initialMonths개월 전부터 현재까지)
+    - 디버깅 로그 추가로 실제 조회 범위와 결과 확인 가능
+    - 음수 월 처리 로직으로 연도 경계 문제 해결
+  - **결과**: 출고이력과 UDI 데이터가 정상적으로 표시됨
 
 ### 💡 배운 점
 
@@ -71,12 +110,17 @@
 - **데이터 구조 설계**: Set을 활용한 중복 제거와 효율적인 카운팅
 - **UI 텍스트의 임팩트**: 간단한 텍스트 변경으로도 전체적인 느낌 개선
 - **점진적 개선**: 기존 로직을 완전히 바꾸지 않고 필요한 부분만 보완
+- **페이지네이션 로직의 중요성**: 월 단위 데이터 조회에서 초기 설정의 영향
+- **디버깅 로그의 가치**: 실제 데이터 조회 범위를 확인하여 빠른 문제 파악
 
 ### 📋 내일 할 일
 
 - [ ] 다른 manual 페이지들도 거래처 필터링 적용 검토
 - [ ] 통계 그래프 사용자 피드백 수집
 - [ ] 추가 UI/UX 개선사항 검토
+- [ ] 모든 페이지 디버깅 로그 제거 (운영 환경용)
+- [ ] 다른 페이지들의 월 단위 페이지네이션 동작 검증
+- [ ] DATABASE.md 문서 확장 및 스키마 정보 보완
 
 ---
 
@@ -539,5 +583,6 @@
 
 - **총 작업일**: 4일
 - **완료된 기능**: 15개
-- **리팩토링된 파일**: 22개
-- **해결된 이슈**: 15개
+- **리팩토링된 파일**: 28개
+- **해결된 이슈**: 17개
+- **생성된 문서**: 2개 (REMEMBER.md, DATABASE.md)

@@ -59,7 +59,7 @@ export default function ExchangePage() {
     resetPagination,
     nextPage,
     setLoadingState,
-  } = usePagination(); // 기본값 사용
+  } = usePagination({ initialMonths: 3 }); // 임시로 3개월로 확장
 
   useEffect(() => {
     fetchExchangeRecords(true);
@@ -75,6 +75,11 @@ export default function ExchangePage() {
       }
 
       const { startDate, endDate } = getDateRange(isInitial);
+      
+      console.log(`[교환 페이지] ${isInitial ? '초기' : '더보기'} 조회:`, {
+        startDate: new Date(startDate).toLocaleString('ko-KR'),
+        endDate: new Date(endDate).toLocaleString('ko-KR')
+      });
 
       // stock_movements에서 교환 기록 조회 (movement_reason = 'exchange')
       const { data: movements, error: movementsError } = await supabase
@@ -98,6 +103,11 @@ export default function ExchangePage() {
         .order("inbound_date", { ascending: false });
 
       if (movementsError) throw movementsError;
+
+      console.log(`[교환 페이지] 조회 결과: ${movements?.length || 0}개 레코드`);
+      if (movements && movements.length > 0) {
+        console.log('첫 번째 레코드:', movements[0]);
+      }
 
       const hasData = movements && movements.length > 0;
       updateHasMore(hasData);
