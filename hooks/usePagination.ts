@@ -32,11 +32,23 @@ export const usePagination = (options: PaginationOptions = {}) => {
     const today = new Date();
 
     if (isInitial) {
-      // 초기 로드: 현재 월
+      // 초기 로드: initialMonths만큼 과거 월부터 현재까지
       const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0); // 현재 월 마지막 날
       endDate.setHours(23, 59, 59, 999);
       
-      const startDate = new Date(today.getFullYear(), today.getMonth(), 1); // 현재 월 첫 날
+      // initialMonths개월 전부터 시작
+      const targetMonth = today.getMonth() - (initialMonths - 1);
+      const targetYear = today.getFullYear();
+      
+      // 음수 월 처리 (작년으로 넘어가는 경우)
+      let finalYear = targetYear;
+      let finalMonth = targetMonth;
+      if (targetMonth < 0) {
+        finalYear = targetYear - 1;
+        finalMonth = 12 + targetMonth; // targetMonth가 음수이므로 더하기
+      }
+      
+      const startDate = new Date(finalYear, finalMonth, 1); // 해당 월 첫 날
       startDate.setHours(0, 0, 0, 0);
       
       return {
@@ -67,7 +79,7 @@ export const usePagination = (options: PaginationOptions = {}) => {
         endDate: endDate.toISOString(),
       };
     }
-  }, [currentMonths]);
+  }, [currentMonths, initialMonths]);
 
   // 더 많은 데이터가 있는지 확인 - 최대 월 수 제한을 우선으로 고려
   const updateHasMore = useCallback((hasData: boolean = true) => {

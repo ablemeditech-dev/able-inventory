@@ -34,7 +34,7 @@ export default function UDIPage() {
     resetPagination,
     nextPage,
     setLoadingState,
-  } = usePagination(); // 기본값 사용
+  } = usePagination({ initialMonths: 3 }); // 임시로 3개월로 확장
 
   useEffect(() => {
     fetchUDIRecords(true); // 초기 로드
@@ -50,6 +50,11 @@ export default function UDIPage() {
       }
 
       const { startDate, endDate } = getDateRange(isInitial);
+      
+      console.log(`[UDI 페이지] ${isInitial ? '초기' : '더보기'} 조회:`, {
+        startDate: new Date(startDate).toLocaleString('ko-KR'),
+        endDate: new Date(endDate).toLocaleString('ko-KR')
+      });
 
       // stock_movements에서 출고 기록 조회 (movement_type = 'out')
       const { data: movements, error: movementsError } = await supabase
@@ -75,6 +80,11 @@ export default function UDIPage() {
         .order("inbound_date", { ascending: false });
 
       if (movementsError) throw movementsError;
+
+      console.log(`[UDI 페이지] 조회 결과: ${movements?.length || 0}개 레코드`);
+      if (movements && movements.length > 0) {
+        console.log('첫 번째 레코드:', movements[0]);
+      }
 
       const hasData = movements && movements.length > 0;
       updateHasMore(hasData);
