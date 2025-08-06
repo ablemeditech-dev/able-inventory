@@ -93,6 +93,14 @@ export default function ClosingPage() {
 
       const { startDate, endDate } = getYearDateRange(isInitial);
 
+      // 디버깅: 마감관리 날짜 범위 확인
+      console.log('🗓️ 마감관리 날짜 범위:', {
+        isInitial,
+        startDate,
+        endDate,
+        currentYears
+      });
+
       // stock_movements에서 사용 기록 조회 (movement_type = 'out', movement_reason = 'used' or 'manual_used' or 'usage')
       const { data: movements, error: movementsError } = await supabase
         .from("stock_movements")
@@ -117,6 +125,12 @@ export default function ClosingPage() {
         .order("inbound_date", { ascending: false });
 
       if (movementsError) throw movementsError;
+
+      // 디버깅: 마감관리 조회 결과 확인
+      console.log('📊 마감관리 조회 결과:', {
+        movementsCount: movements?.length || 0,
+        movements: movements?.slice(0, 5) // 처음 5개만 로깅
+      });
 
       const hasData = movements && movements.length > 0;
       // 최대 5년까지만 조회 허용
