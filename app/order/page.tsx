@@ -18,6 +18,8 @@ interface ClientGroupedOrder {
   totalQuantity: number;
   totalUsage: number;
   orderNeededItems: number;
+  stockOutItems: number;
+  lowStockItems: number;
 }
 
 export default function OrderPage() {
@@ -54,11 +56,30 @@ export default function OrderPage() {
     // 3개월치 재고 기준으로 재고 부족 예정 판단
     const threeMonthsStock = monthlyAverageUsage * 3;
     const isLowStock = totalQuantity > 0 && 
-                       totalQuantity < threeMonthsStock && 
+                       totalQuantity <= threeMonthsStock && 
                        sixMonthsUsage > 0 &&
                        monthlyAverageUsage >= 0.1; // 월평균이 너무 작으면 제외
     
     return isStockOut || isLowStock;
+  };
+
+  // 재고 상태별 우선순위 반환 함수 (0: 재고부족, 1: 부족예정, 2: 일반)
+  const getStockStatus = (totalQuantity: number, sixMonthsUsage: number) => {
+    const monthlyAverageUsage = sixMonthsUsage / 6;
+    const isStockOut = totalQuantity === 0;
+    
+    if (isStockOut) return 0; // 재고부족 (최우선)
+    
+    // 3개월치 재고 기준으로 재고 부족 예정 판단
+    const threeMonthsStock = monthlyAverageUsage * 3;
+    const isLowStock = totalQuantity > 0 && 
+                       totalQuantity <= threeMonthsStock && 
+                       sixMonthsUsage > 0 &&
+                       monthlyAverageUsage >= 0.1; // 월평균이 너무 작으면 제외
+    
+    if (isLowStock) return 1; // 부족예정 (2순위)
+    
+    return 2; // 일반 (3순위)
   };
 
   // 거래처별 오더 데이터 그룹화
@@ -77,7 +98,9 @@ export default function OrderPage() {
           totalItems: 0,
           totalQuantity: 0,
           totalUsage: 0,
-          orderNeededItems: 0
+          orderNeededItems: 0,
+          stockOutItems: 0,
+          lowStockItems: 0
         });
       }
       
@@ -87,8 +110,13 @@ export default function OrderPage() {
       group.totalQuantity += item.total_quantity;
       group.totalUsage += item.six_months_usage;
       
-      // 오더 필요 품목 수 계산
-      if (isOrderNeeded(item.total_quantity, item.six_months_usage)) {
+      // 재고 상태별 품목 수 계산
+      const stockStatus = getStockStatus(item.total_quantity, item.six_months_usage);
+      if (stockStatus === 0) {
+        group.stockOutItems += 1;
+        group.orderNeededItems += 1;
+      } else if (stockStatus === 1) {
+        group.lowStockItems += 1;
         group.orderNeededItems += 1;
       }
     });
@@ -101,7 +129,14 @@ export default function OrderPage() {
 
   // 테이블 컴포넌트 생성 함수
   const createOrderTable = (orders: any[], showClientColumn: boolean = true, clientName?: string) => {
-    // 병원(거래처)별 Top3 계산 - 제거 (이제 전역 병원별 랭킹 사용)
+    // 재고 상태별 우선순위 정렬 (재고부족 → 부족예정 → 일반)
+    const sortedOrders = [...orders].sort((a, b) => {
+      const aStockStatus = getStockStatus(a.total_quantity, a.six_months_usage);
+      const bStockStatus = getStockStatus(b.total_quantity, b.six_months_usage);
+      
+      // 우선순위: 재고부족(0) → 부족예정(1) → 일반(2)
+      return aStockStatus - bStockStatus;
+    });
     
     return (
       <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -140,7 +175,7 @@ export default function OrderPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {orders.map((item, index) => (
+              {sortedOrders.map((item, index) => (
                 <OrderTableRow 
                   key={`${item.cfn}-${item.client_id || item.client_name}`}
                   item={item}
@@ -223,9 +258,20 @@ export default function OrderPage() {
           <span className="text-sm text-text-secondary">
             재고: <span className="font-medium text-primary">{group.totalQuantity.toLocaleString()}개</span>
           </span>
-          <span className="text-sm text-text-secondary">
-            오더필요: <span className="font-medium text-primary">{group.orderNeededItems}품목</span>
-          </span>
+          {(group.stockOutItems > 0 || group.lowStockItems > 0) && (
+            <div className="flex items-center gap-2">
+              {group.stockOutItems > 0 && (
+                <span className="text-sm">
+                  <span className="text-red-600 font-medium">재고부족 {group.stockOutItems}</span>
+                </span>
+              )}
+              {group.lowStockItems > 0 && (
+                <span className="text-sm">
+                  <span className="text-orange-600 font-medium">부족예정 {group.lowStockItems}</span>
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
     ),

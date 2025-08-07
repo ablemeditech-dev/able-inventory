@@ -29,7 +29,9 @@ interface MonthlyUsage {
   top_cfn_quantity: number;
   stock_risk_level: 'safe' | 'warning' | 'danger';
   stock_risk_products: number;
-  shortage_cfns?: string[]; // 부족한 CFN 목록
+  shortage_cfns?: string[]; // 부족한 CFN 목록 (재고부족 + 부족예정)
+  stock_out_cfns?: string[]; // 재고부족 CFN 목록 (수량 0)
+  low_stock_cfns?: string[]; // 부족예정 CFN 목록 (3개월치 미만)
   growth_rate: number; // 전월 대비 성장률
 }
 
@@ -40,6 +42,7 @@ export default function HomePage() {
   const [totalUsage, setTotalUsage] = useState({ quantity: 0, products: 0 });
   const [lastMonthName, setLastMonthName] = useState('');
   const [lastMonthUsageMap, setLastMonthUsageMap] = useState<Map<string, number>>(new Map());
+  const [totalLastMonthUsage, setTotalLastMonthUsage] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -271,17 +274,7 @@ export default function HomePage() {
         const lastMonth = today.getMonth() === 0 ? 12 : today.getMonth(); // 1월인 경우 전월은 12월
         const lastMonthName = `${lastMonth}월`;
 
-        // 디버깅: 날짜 범위 확인
-        console.log('🗓️ 대시보드 이번달 사용 현황 날짜 범위:', {
-          today: today.toISOString(),
-          startOfThisMonth: startOfThisMonth.toISOString(),
-          endOfThisMonth: endOfThisMonth.toISOString(),
-          year: today.getFullYear(),
-          month: today.getMonth() + 1,
-          currentMonth,
-          lastMonth,
-          lastMonthName
-        });
+
 
         // 전월 범위도 계산 (성장률 비교용)
         const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
@@ -310,14 +303,7 @@ export default function HomePage() {
 
         if (movementsError) throw movementsError;
 
-        // 디버깅: 조회된 데이터 확인
-        console.log('📊 대시보드 조회 결과 (statistics 방식):', {
-          totalMovements: recentMovements?.length || 0,
-          startDate: startDate.toISOString(),
-          currentMonth,
-          lastMonth,
-          lastMonthName
-        });
+
 
         if (recentMovements && recentMovements.length > 0) {
           // 병원과 제품 정보 조회
@@ -465,9 +451,13 @@ export default function HomePage() {
 
           // 전월 사용량 맵 생성 (JSX에서 사용)
           const lastMonthHospitalUsage = new Map<string, number>();
+          let totalLastMonthQuantity = 0;
           hospitalMonthlyUsage.forEach((monthlyData, hospitalName) => {
             const lastMonthQuantity = monthlyData.get(lastMonthKey) || 0;
             lastMonthHospitalUsage.set(hospitalName, lastMonthQuantity);
+            if (hospitalName !== "알 수 없음") {
+              totalLastMonthQuantity += lastMonthQuantity;
+            }
           });
 
           // 상위 5개 병원으로 제한하고 인사이트 계산 ("알 수 없음" 제외)
@@ -484,8 +474,10 @@ export default function HomePage() {
                 }
               });
 
-              // 재고 부족 CFN 찾기 (해당 병원에서 6개월간 사용한 모든 제품 확인)
+              // 재고 부족/부족예정 CFN 찾기 (해당 병원에서 6개월간 사용한 모든 제품 확인)
               const shortageProducts: string[] = [];
+              const stockOutProducts: string[] = [];
+              const lowStockProducts: string[] = [];
               
               // 해당 병원의 6개월간 사용한 모든 CFN 수집
               const hospitalAllProducts = new Set<string>();
@@ -500,10 +492,34 @@ export default function HomePage() {
                 });
               }
               
-              // 해당 병원이 사용하는 모든 CFN에 대해 재고 확인
+              // 해당 병원이 사용하는 모든 CFN에 대해 재고 확인 (order 페이지와 동일한 로직)
               hospitalAllProducts.forEach(cfn => {
                 const currentStock = cfnStockMap.get(cfn) || 0;
-                if (currentStock <= 0) {
+                
+                // 해당 병원의 해당 CFN 6개월 사용량 계산
+                let cfnSixMonthsUsage = 0;
+                if (hospitalProducts) {
+                  hospitalProducts.forEach((monthData) => {
+                    cfnSixMonthsUsage += monthData.get(cfn) || 0;
+                  });
+                }
+                
+                // order 페이지와 동일한 부족 예정 판단 로직
+                const monthlyAverageUsage = cfnSixMonthsUsage / 6;
+                const isStockOut = currentStock === 0;
+                const threeMonthsStock = monthlyAverageUsage * 3;
+                const isLowStock = currentStock > 0 && 
+                                   currentStock <= threeMonthsStock && 
+                                   cfnSixMonthsUsage > 0 &&
+                                   monthlyAverageUsage >= 0.1; // 월평균이 너무 작으면 제외
+                
+
+                
+                if (isStockOut) {
+                  stockOutProducts.push(cfn);
+                  shortageProducts.push(cfn);
+                } else if (isLowStock) {
+                  lowStockProducts.push(cfn);
                   shortageProducts.push(cfn);
                 }
               });
@@ -524,6 +540,8 @@ export default function HomePage() {
                 ? ((data.quantity - lastMonthQuantity) / lastMonthQuantity) * 100 
                 : data.quantity > 0 ? 100 : 0;
 
+
+
               return {
                 hospital_name,
                 total_quantity: data.quantity,
@@ -532,7 +550,9 @@ export default function HomePage() {
                 top_cfn_quantity: topCfnQuantity,
                 stock_risk_level: riskLevel,
                 stock_risk_products: shortageProducts.length,
-                shortage_cfns: shortageProducts, // 부족한 CFN 목록 추가
+                shortage_cfns: shortageProducts, // 부족한 CFN 목록 (재고부족 + 부족예정)
+                stock_out_cfns: stockOutProducts, // 재고부족 CFN 목록
+                low_stock_cfns: lowStockProducts, // 부족예정 CFN 목록
                 growth_rate: Math.round(growthRate)
               };
             })
@@ -582,11 +602,13 @@ export default function HomePage() {
           setTotalUsage({ quantity: totalQuantity, products: allProducts.size });
           setLastMonthName(lastMonthName);
           setLastMonthUsageMap(lastMonthHospitalUsage);
+          setTotalLastMonthUsage(totalLastMonthQuantity);
         } else {
           setMonthlyUsage([]);
           setTotalUsage({ quantity: 0, products: 0 });
           setLastMonthName(lastMonthName);
           setLastMonthUsageMap(new Map());
+          setTotalLastMonthUsage(0);
         }
       } catch (usageError) {
         console.error('사용 현황 데이터 로딩 오류:', usageError);
@@ -594,6 +616,7 @@ export default function HomePage() {
         setTotalUsage({ quantity: 0, products: 0 });
         setLastMonthName('');
         setLastMonthUsageMap(new Map());
+        setTotalLastMonthUsage(0);
       }
 
       setLowStockProducts(lowStock);
@@ -690,7 +713,7 @@ export default function HomePage() {
                 <h3 className="text-lg font-semibold text-primary">이번달 사용 현황</h3>
                 <div className="text-right">
                   <p className="text-sm font-medium text-primary">{totalUsage.quantity.toLocaleString()}개</p>
-                  <p className="text-xs text-text-secondary">{totalUsage.products}종 제품</p>
+                  <p className="text-xs text-text-secondary">{lastMonthName} {totalLastMonthUsage.toLocaleString()}개</p>
                 </div>
               </div>
             </div>
@@ -753,15 +776,25 @@ export default function HomePage() {
                         {/* 재고 위험도 */}
                         <div className="flex items-center space-x-2">
                           <div className={`w-2 h-2 rounded-full ${
-                            usage.shortage_cfns && usage.shortage_cfns.length > 0 ? 'bg-status-error-text' : 'bg-status-success-text'
+                            usage.stock_out_cfns && usage.stock_out_cfns.length > 0 
+                              ? 'bg-red-500' // 재고부족 - 빨간색
+                              : usage.low_stock_cfns && usage.low_stock_cfns.length > 0
+                              ? 'bg-orange-500' // 부족예정 - 주황색
+                              : 'bg-green-500' // 안전 - 초록색
                           }`}></div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs text-text-secondary">재고 상태</p>
                             <p className={`text-xs font-medium truncate ${
-                              usage.shortage_cfns && usage.shortage_cfns.length > 0 ? 'text-status-error-text' : 'text-status-success-text'
-                            }`} title={usage.shortage_cfns && usage.shortage_cfns.length > 1 ? usage.shortage_cfns.join(', ') + ' 재고부족' : undefined}>
-                              {usage.shortage_cfns && usage.shortage_cfns.length > 0 
-                                ? `${usage.shortage_cfns[0]} 재고부족${usage.shortage_cfns.length > 1 ? ` 외 ${usage.shortage_cfns.length - 1}종` : ''}`
+                              usage.stock_out_cfns && usage.stock_out_cfns.length > 0 
+                                ? 'text-red-600' // 재고부족 - 빨간색
+                                : usage.low_stock_cfns && usage.low_stock_cfns.length > 0
+                                ? 'text-orange-600' // 부족예정 - 주황색
+                                : 'text-green-600' // 안전 - 초록색
+                            }`}>
+                              {usage.stock_out_cfns && usage.stock_out_cfns.length > 0 
+                                ? '재고 부족'
+                                : usage.low_stock_cfns && usage.low_stock_cfns.length > 0
+                                ? '부족 예정'
                                 : '안전'
                               }
                             </p>

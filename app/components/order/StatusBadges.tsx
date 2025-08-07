@@ -21,7 +21,7 @@ export const StatusBadges: React.FC<StatusBadgesProps> = ({
   // 3개월치 재고 기준으로 재고 부족 예정 판단
   const threeMonthsStock = monthlyAverageUsage * 3;
   const isLowStock = totalQuantity > 0 && 
-                     totalQuantity < threeMonthsStock && 
+                     totalQuantity <= threeMonthsStock && 
                      sixMonthsUsage > 0 &&
                      monthlyAverageUsage >= 0.1; // 월평균이 너무 작으면 제외
 
@@ -65,7 +65,7 @@ export const getRowBackgroundClass = (totalQuantity: number, sixMonthsUsage: num
   // 3개월치 재고 기준으로 재고 부족 예정 판단
   const threeMonthsStock = monthlyAverageUsage * 3;
   const isLowStock = totalQuantity > 0 && 
-                     totalQuantity < threeMonthsStock && 
+                     totalQuantity <= threeMonthsStock && 
                      sixMonthsUsage > 0 &&
                      monthlyAverageUsage >= 0.1; // 월평균이 너무 작으면 제외
   
