@@ -119,9 +119,11 @@ export default function ExchangeMethodModal({
 
   const checkInventoryForLocations = async (locationsList: Location[]): Promise<Location[]> => {
     const locationsWithInventory: Location[] = [];
+    const ableWarehouseId = "c24e8564-4987-4cfd-bd0b-e9f05a4ab541";
 
     for (const location of locationsList) {
       try {
+
         const { data: movements, error } = await supabase
           .from("stock_movements")
           .select("product_id, quantity, from_location_id, to_location_id")
@@ -197,12 +199,12 @@ export default function ExchangeMethodModal({
         alert("교환할 제품을 선택해주세요.");
         return;
       }
+      setStep(2);
+    } else if (step === 2) {
       if (!selectedToLocation) {
         alert("교환받을 제품이 들어갈 위치를 선택해주세요.");
         return;
       }
-      setStep(2);
-    } else if (step === 2) {
       if (exchangeMethod === "new-product") {
         setStep(3);
       } else {
@@ -262,19 +264,77 @@ export default function ExchangeMethodModal({
     try {
       const selectedItemsData = getSelectedItemsData();
       
-      // 실제 교환 로직 구현
-      const exchangeData = {
-        date: exchangeDate,
-        fromLocation: selectedLocation,
-        toLocation: selectedToLocation,
-        items: selectedItemsData,
-        method: exchangeMethod,
-        newProducts: exchangeMethod === "new-product" ? newProducts : [],
-      };
+      // 1. 회수(OUT) 처리 - 선택된 아이템들을 회수
+      // 회수는 선택한 위치 → 사용자가 선택한 목적지로 이동
+      const outboundMovements = selectedItemsData.map(item => ({
+        product_id: item.product_id,
+        from_location_id: selectedLocation, // 회수할 병원/창고
+        to_location_id: selectedToLocation, // 사용자가 선택한 목적지
+        quantity: item.quantity,
+        lot_number: item.lot_number,
+        ubd_date: item.ubd_date,
+        movement_type: 'out',
+        movement_reason: 'exchange',
+        inbound_date: exchangeDate,
+        notes: '교환으로 인한 회수'
+      }));
 
-      console.log("교환 데이터:", exchangeData);
+      // 회수 데이터 저장
+      const { error: outError } = await supabase
+        .from('stock_movements')
+        .insert(outboundMovements);
+
+      if (outError) throw outError;
+
+      // 2. 새 제품 교환인 경우 입고(IN) 처리
+      if (exchangeMethod === "new-product" && newProducts.length > 0) {
+        // CFN으로 product_id 찾기
+        const cfns = newProducts.map(p => p.cfn);
+        const { data: products, error: productsError } = await supabase
+          .from('products')
+          .select('id, cfn')
+          .in('cfn', cfns);
+
+        if (productsError) throw productsError;
+
+        const productMap = new Map(products?.map(p => [p.cfn, p.id]) || []);
+
+        const inboundMovements = newProducts
+          .filter(newProduct => productMap.has(newProduct.cfn))
+          .map(newProduct => ({
+            product_id: productMap.get(newProduct.cfn),
+            from_location_id: null, // 새 제품은 출발지가 없음
+            to_location_id: selectedToLocation,
+            quantity: newProduct.quantity,
+            lot_number: newProduct.lot_number,
+            ubd_date: newProduct.ubd_date,
+            movement_type: 'in',
+            movement_reason: 'exchange',
+            inbound_date: exchangeDate,
+            notes: '교환으로 인한 신제품 입고'
+          }));
+
+        if (inboundMovements.length > 0) {
+          const { error: inError } = await supabase
+            .from('stock_movements')
+            .insert(inboundMovements);
+
+          if (inError) throw inError;
+        }
+
+        // CFN을 찾지 못한 제품들 경고
+        const notFoundCfns = newProducts
+          .filter(p => !productMap.has(p.cfn))
+          .map(p => p.cfn);
+        
+        if (notFoundCfns.length > 0) {
+          console.warn('다음 CFN들을 찾을 수 없습니다:', notFoundCfns);
+          alert(`경고: 다음 CFN들이 시스템에 등록되지 않았습니다: ${notFoundCfns.join(', ')}`);
+        }
+      }
+
+
       
-      // 성공 메시지 및 모달 닫기
       alert("교환이 성공적으로 완료되었습니다!");
       onExchangeComplete?.();
       handleClose();
@@ -335,20 +395,7 @@ export default function ExchangeMethodModal({
         </select>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-900 mb-2">
-          교환 방식
-        </label>
-        <select
-          value={exchangeMethod}
-          onChange={(e) => setExchangeMethod(e.target.value as "new-product" | "recall-only" | "")}
-          className="w-full px-3 py-2 border border-accent-soft rounded-lg focus:outline-none focus:border-primary text-gray-900"
-        >
-          <option value="">교환 방식을 선택하세요</option>
-          <option value="new-product">신제품 교환</option>
-          <option value="recall-only">회수만</option>
-        </select>
-      </div>
+
 
       {selectedLocation && (
         <div>
@@ -622,7 +669,7 @@ export default function ExchangeMethodModal({
           </button>
           <button
             onClick={step < 3 ? handleNext : handleExchangeSubmit}
-            disabled={processing || (step === 1 && (selectedItems.size === 0 || !selectedToLocation)) || (step === 2 && !exchangeMethod)}
+            disabled={processing || (step === 1 && selectedItems.size === 0) || (step === 2 && (!selectedToLocation || !exchangeMethod))}
             className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {processing ? "처리 중..." : step < 3 ? "다음" : "교환 완료"}

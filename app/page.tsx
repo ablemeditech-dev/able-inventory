@@ -423,8 +423,6 @@ export default function HomePage() {
           const thisMonthKey = `${today.getFullYear()}-${String(currentMonth).padStart(2, "0")}`;
           const lastMonthKey = `${today.getFullYear()}-${String(lastMonth).padStart(2, "0")}`;
 
-          console.log('📊 월별 키:', { thisMonthKey, lastMonthKey });
-
           // 병원별 상세 사용량 집계
           const hospitalUsage = new Map<string, { 
             quantity: number; 
@@ -559,44 +557,7 @@ export default function HomePage() {
             .sort((a, b) => b.total_quantity - a.total_quantity)
             .slice(0, 5);
 
-          console.log('📊 최종 결과:', {
-            sortedUsage,
-            lastMonthHospitalUsage: Array.from(lastMonthHospitalUsage.entries()),
-            cfnStockMap: Array.from(cfnStockMap.entries()).slice(0, 10), // 처음 10개만
-            sampleHospitalProducts: sortedUsage[0] ? {
-              hospitalName: sortedUsage[0].hospital_name,
-              thisMonthProducts: Array.from(hospitalUsage.get(sortedUsage[0].hospital_name)?.products.entries() || []),
-              allProducts: (() => {
-                const allProducts = new Set<string>();
-                const hospitalProducts = hospitalProductUsage.get(sortedUsage[0].hospital_name);
-                if (hospitalProducts) {
-                  hospitalProducts.forEach((monthData) => {
-                    monthData.forEach((quantity, cfn) => {
-                      if (quantity > 0) allProducts.add(cfn);
-                    });
-                  });
-                }
-                return Array.from(allProducts);
-              })(),
-              shortageCheck: (() => {
-                const allProducts = new Set<string>();
-                const hospitalProducts = hospitalProductUsage.get(sortedUsage[0].hospital_name);
-                if (hospitalProducts) {
-                  hospitalProducts.forEach((monthData) => {
-                    monthData.forEach((quantity, cfn) => {
-                      if (quantity > 0) allProducts.add(cfn);
-                    });
-                  });
-                }
-                return Array.from(allProducts).map(cfn => ({
-                  cfn,
-                  currentStock: cfnStockMap.get(cfn) || 0,
-                  isShortage: (cfnStockMap.get(cfn) || 0) <= 0
-                }));
-              })(),
-              shortageProducts: sortedUsage[0].shortage_cfns || []
-            } : null
-          });
+
 
           setMonthlyUsage(sortedUsage);
           setTotalUsage({ quantity: totalQuantity, products: allProducts.size });

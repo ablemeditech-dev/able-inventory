@@ -76,10 +76,7 @@ export default function ExchangePage() {
 
       const { startDate, endDate } = getDateRange(isInitial);
       
-      console.log(`[교환 페이지] ${isInitial ? '초기' : '더보기'} 조회:`, {
-        startDate: new Date(startDate).toLocaleString('ko-KR'),
-        endDate: new Date(endDate).toLocaleString('ko-KR')
-      });
+
 
       // stock_movements에서 교환 기록 조회 (movement_reason = 'exchange')
       const { data: movements, error: movementsError } = await supabase
@@ -104,10 +101,7 @@ export default function ExchangePage() {
 
       if (movementsError) throw movementsError;
 
-      console.log(`[교환 페이지] 조회 결과: ${movements?.length || 0}개 레코드`);
-      if (movements && movements.length > 0) {
-        console.log('첫 번째 레코드:', movements[0]);
-      }
+
 
       const hasData = movements && movements.length > 0;
       updateHasMore(hasData);
@@ -125,7 +119,7 @@ export default function ExchangePage() {
           ...movements.map((m) => m.to_location_id)
         ].filter(Boolean))
       ];
-
+      
       const [productsResult, locationsResult, hospitalsResult] = await Promise.all([
         supabase
           .from("products")
@@ -206,14 +200,47 @@ export default function ExchangePage() {
         ? new Date(record.inbound_date).toLocaleDateString("ko-KR")
         : new Date(record.created_at).toLocaleDateString("ko-KR");
       
-      // ABLE 중앙창고가 아닌 곳의 이름을 가져오기
+      // 교환이 발생한 병원/창고 이름을 가져오기
       const ableWarehouseId = "c24e8564-4987-4cfd-bd0b-e9f05a4ab541";
       let locationName = "알 수 없음";
       
+      // 교환이 발생한 병원/창고 이름을 찾기
+      // 수정된 로직: 모든 교환은 from_location과 to_location 양쪽에서 ABLE이 아닌 곳을 찾음
+      
+      // 우선순위 1: from_location_id에서 ABLE이 아닌 위치 찾기
       if (record.from_location_id && record.from_location_id !== ableWarehouseId) {
         locationName = record.from_location?.location_name || record.from_location?.hospital_name || "알 수 없음";
-      } else if (record.to_location_id && record.to_location_id !== ableWarehouseId) {
+      }
+      // 우선순위 2: to_location_id에서 ABLE이 아닌 위치 찾기  
+      else if (record.to_location_id && record.to_location_id !== ableWarehouseId) {
         locationName = record.to_location?.location_name || record.to_location?.hospital_name || "알 수 없음";
+      }
+      // 예외 처리: 둘 다 ABLE이거나 null인 경우
+      else if (record.from_location_id === ableWarehouseId && record.to_location_id === ableWarehouseId) {
+        locationName = "ABLE 내부 교환"; // ABLE 내부에서의 교환
+      }
+      else if (!record.from_location_id && !record.to_location_id) {
+        locationName = "위치 정보 없음"; // 둘 다 null
+      }
+      else {
+        // 한쪽은 ABLE, 한쪽은 null인 경우 notes에서 찾기 시도
+        if (record.notes) {
+          const notesMatch = record.notes.match(/교환.*?([가-힣\s]+병원|[가-힣\s]*medical)/i);
+          if (notesMatch) {
+            locationName = notesMatch[1].trim();
+          } else {
+            locationName = "교환 기록";
+          }
+        }
+      }
+      
+      // 여전히 찾지 못했다면 양쪽 다 확인 (fallback)
+      if (locationName === "알 수 없음") {
+        if (record.from_location_id && record.from_location_id !== ableWarehouseId) {
+          locationName = record.from_location?.location_name || record.from_location?.hospital_name || "알 수 없음";
+        } else if (record.to_location_id && record.to_location_id !== ableWarehouseId) {
+          locationName = record.to_location?.location_name || record.to_location?.hospital_name || "알 수 없음";
+        }
       }
 
       // created_at을 30초 단위로 그룹핑하여 같은 교환 트랜잭션을 하나로 묶음
@@ -368,7 +395,7 @@ export default function ExchangePage() {
         isOpen={isMethodModalOpen}
         onClose={() => setIsMethodModalOpen(false)}
         onExchangeComplete={() => {
-          fetchExchangeRecords();
+          fetchExchangeRecords(true); // 초기 조회로 전체 새로고침
         }}
       />
     </div>

@@ -1,5 +1,230 @@
 # 📝 작업 기록 (REMEMBER.md)
 
+## 📅 2024년 12월 24일 (화)
+
+### 🎯 오늘의 목표
+
+- [x] `/exchange` 페이지 교환 모달 로직 완전 수정
+- [x] 교환 데이터베이스 저장 로직 구현
+- [x] 교환 페이지 아코디언 타이틀 "알 수 없음" 문제 해결
+- [x] 교환 모달 UI 흐름 개선 및 디버깅 로그 정리
+
+### ✅ 완료된 작업
+
+- **교환 모달 데이터베이스 저장 로직 구현**
+
+  - **문제점**: `handleExchangeSubmit`에서 console.log만 하고 실제 Supabase 저장 로직이 누락됨
+  - **해결방안**: 완전한 교환 처리 로직 구현
+    - 회수(OUT): `movement_type: 'out'`, `movement_reason: 'exchange'`
+    - 입고(IN): `movement_type: 'in'`, `movement_reason: 'exchange'`
+  - **기술 구현**: CFN으로 product_id 매핑, 에러 처리, 성공 알림
+  - **결과**: 실제 데이터베이스에 교환 기록 저장 및 페이지 새로고침
+
+- **교환 모달 UI 흐름 개선**
+
+  - **문제점**: Step1과 Step2에서 교환 방식 선택이 중복되어 사용자 혼란
+  - **해결방안**: Step1에서 교환 방식 선택 제거, Step2에서만 선택
+  - **버튼 조건**: Step1은 제품 선택만, Step2는 목적지와 교환 방식 필수
+  - **결과**: 더 직관적이고 단순한 3단계 교환 프로세스
+
+- **교환 데이터 저장 로직 핵심 문제 해결**
+
+  - **문제점**: `to_location_id`가 하드코딩된 ABLE 중앙창고 ID로 저장되어 사용자 선택 무시
+  - **원인 분석**: 회수(OUT) 로직에서 `selectedToLocation` 대신 `ableWarehouseId` 사용
+  - **해결방안**: `to_location_id: selectedToLocation`으로 수정
+  - **데이터 흐름**: 선택한 위치 → 사용자가 선택한 목적지로 정확한 이동 기록
+
+- **교환 페이지 아코디언 타이틀 "알 수 없음" 문제 해결**
+
+  - **문제점**: 아코디언 타이틀이 "알 수 없음"으로 표시되는 문제
+  - **원인 분석**:
+    1. 기존 데이터: `from_location_id`가 ABLE, `to_location_id`가 병원
+    2. 잘못된 데이터: `from_location_id`와 `to_location_id`가 모두 ABLE
+    3. 새 데이터: `from_location_id`가 병원, `to_location_id`가 목적지
+  - **해결방안**: 우선순위 기반 위치 이름 찾기 로직 구현
+    - 우선순위 1: ABLE이 아닌 `from_location_id`
+    - 우선순위 2: ABLE이 아닌 `to_location_id`
+    - 예외 처리: ABLE 내부 교환, 위치 정보 없음 등
+  - **결과**: 정확한 병원/창고 이름 표시
+
+### 🔧 기술적 세부사항
+
+- **교환 데이터 저장 구조**:
+
+  ```typescript
+  // 회수(OUT)
+  {
+    from_location_id: selectedLocation,    // 회수할 위치
+    to_location_id: selectedToLocation,    // 목적지
+    movement_type: 'out',
+    movement_reason: 'exchange'
+  }
+
+  // 입고(IN) - 신제품 교환시
+  {
+    from_location_id: null,                // 새 제품
+    to_location_id: selectedToLocation,    // 목적지
+    movement_type: 'in',
+    movement_reason: 'exchange'
+  }
+  ```
+
+- **위치 이름 찾기 로직**:
+
+  ```typescript
+  // 우선순위 기반 병원/창고 이름 찾기
+  if (record.from_location_id && record.from_location_id !== ableWarehouseId) {
+    locationName =
+      record.from_location?.location_name ||
+      record.from_location?.hospital_name;
+  } else if (
+    record.to_location_id &&
+    record.to_location_id !== ableWarehouseId
+  ) {
+    locationName =
+      record.to_location?.location_name || record.to_location?.hospital_name;
+  }
+  ```
+
+- **수정된 파일들**:
+  - `app/components/modals/ExchangeMethodModal.tsx` (저장 로직, UI 흐름)
+  - `app/exchange/page.tsx` (위치 이름 찾기 로직, 디버깅 로그 정리)
+
+### 🐛 해결된 이슈
+
+- 교환 모달에서 실제 데이터베이스 저장이 안 되던 문제 해결
+- Step1과 Step2에서 교환 방식 선택 중복 문제 해결
+- `to_location_id`가 사용자 선택을 무시하고 하드코딩되던 문제 해결
+- 교환 페이지 아코디언 타이틀 "알 수 없음" 표시 문제 해결
+- 다양한 데이터 패턴(기존/새로운/잘못된)에 대한 호환성 문제 해결
+
+### 💡 배운 점
+
+- **데이터 흐름의 중요성**: UI에서 선택한 값이 실제 데이터베이스까지 정확히 전달되는지 확인 필요
+- **하드코딩의 위험성**: 동적으로 변해야 할 값을 하드코딩하면 사용자 입력 무시
+- **데이터 호환성**: 기존 데이터와 새 데이터 구조가 다를 때 우선순위 기반 처리 로직 필요
+- **단계적 디버깅**: 콘솔 로그를 통한 데이터 추적으로 정확한 문제점 파악
+- **사용자 중심 설계**: 복잡한 내부 로직보다 직관적인 UI 흐름이 더 중요
+
+### 📋 내일 할 일
+
+- [ ] 교환 기능 전체 테스트 및 사용자 피드백 수집
+- [ ] 다른 manual 페이지들의 유사한 문제점 검토
+- [ ] 교환 통계 및 리포트 기능 검토
+- [ ] 성능 최적화 및 에러 핸들링 강화
+
+---
+
+## 📅 2024년 12월 23일 (월)
+
+### 🎯 오늘의 목표
+
+- [x] DHC4008 재고 부족 예정 판단 로직 수정
+- [x] `/order` 페이지 재고 우선순위 정렬 구현
+- [x] 루트 페이지 이번달 사용 현황 개선
+- [x] 재고 상태 표시 시스템 간소화
+
+### ✅ 완료된 작업
+
+- **재고 부족 예정 판단 로직 수정**
+
+  - **문제점**: DHC4008 제품이 현재고 1개, 6개월 사용량 2개인데 "부족 예정"으로 표시되지 않음
+  - **원인 분석**: `totalQuantity < threeMonthsStock` 조건에서 `1 < 1`이 거짓이므로 부족 예정으로 판단되지 않음
+  - **해결방안**: 조건을 `totalQuantity <= threeMonthsStock`로 변경
+  - **적용 파일**: `app/components/order/StatusBadges.tsx`, `app/order/page.tsx`
+  - **결과**: 현재고가 3개월치 필요량과 같거나 적을 때 "부족 예정"으로 정상 판단
+
+- **오더 페이지 재고 우선순위 정렬 구현**
+
+  - **요구사항**: 거래처별 아코디언에서 재고부족 → 부족예정 → 일반 순으로 자동 정렬
+  - **구현 방법**: `getStockStatus` 함수로 우선순위 반환 (0: 재고부족, 1: 부족예정, 2: 일반)
+  - **정렬 로직**: `createOrderTable` 함수에서 `sortedOrders` 배열을 우선순위별로 정렬
+  - **아코디언 헤더 개선**: "오더필요: X품목" → "재고부족 2" "부족예정 3" 구체적 표시
+  - **색상 구분**: 재고부족(빨강), 부족예정(주황)으로 시각적 구분
+
+- **루트 페이지 이번달 사용 현황 개선**
+
+  - **텍스트 변경**: '22종 제품' → '11월 5개' (전월 총 사용량 표시)
+  - **데이터 계산**: 전월 병원별 사용량을 합산하여 총 전월 사용량 계산
+  - **상태 추가**: `totalLastMonthUsage` 상태로 전월 사용량 관리
+  - **사용자 경험**: 이번달과 전월 사용량을 한눈에 비교 가능
+
+- **루트 페이지 재고 상태 로직 통일**
+
+  - **문제점**: 루트 페이지에서 재고부족(수량 0)만 확인하여 DHC4008, DHC3515 같은 부족예정 제품 누락
+  - **해결방안**: `/order` 페이지와 동일한 로직 적용 (재고부족 + 부족예정)
+  - **데이터 구조 개선**: `MonthlyUsage` 인터페이스에 `stock_out_cfns`, `low_stock_cfns` 필드 추가
+  - **로직 검증**: 디버깅 로그로 서울아산 병원 사례 확인 (DHC4015 재고부족 + DHC4008 부족예정)
+
+- **재고 상태 표시 시스템 간소화**
+
+  - **기존**: 복잡한 CFN 나열 ("DHC4015 외 1개 부족/예정")
+  - **개선**: 간단한 3단계 시스템
+    - 🟢 **안전**: 재고부족·부족예정 없음 (`text-green-600`)
+    - 🟠 **부족 예정**: 재고부족 없고 부족예정 있음 (`text-orange-600`)
+    - 🔴 **재고 부족**: 재고부족 있음 (우선순위) (`text-red-600`)
+  - **색상 시스템**: 신호등 방식 (초록-주황-빨강)으로 직관적 인식
+
+### 🔧 기술적 세부사항
+
+- **재고 부족 예정 판단 로직**:
+
+  ```typescript
+  const threeMonthsStock = monthlyAverageUsage * 3;
+  const isLowStock =
+    totalQuantity > 0 &&
+    totalQuantity <= threeMonthsStock && // <= 로 변경
+    sixMonthsUsage > 0 &&
+    monthlyAverageUsage >= 0.1;
+  ```
+
+- **재고 우선순위 정렬**:
+
+  ```typescript
+  const getStockStatus = (totalQuantity, sixMonthsUsage) => {
+    if (totalQuantity === 0) return 0; // 재고부족
+    if (isLowStock) return 1; // 부족예정
+    return 2; // 일반
+  };
+  ```
+
+- **루트 페이지 재고 상태 통합**:
+
+  ```typescript
+  // 재고부족과 부족예정 구분 저장
+  const stockOutProducts = []; // 수량 0
+  const lowStockProducts = []; // 3개월치 미만
+  const shortageProducts = []; // 전체 (재고부족 + 부족예정)
+  ```
+
+- **수정된 파일들**:
+  - `app/components/order/StatusBadges.tsx` (부족예정 판단 로직)
+  - `app/order/page.tsx` (우선순위 정렬, 아코디언 헤더)
+  - `app/page.tsx` (전월 사용량, 재고 상태 로직 통일, 표시 간소화)
+
+### 🐛 해결된 이슈
+
+- DHC4008 제품의 부족예정 판단 오류 해결
+- 오더 페이지에서 중요한 제품이 하단에 묻히는 문제 해결
+- 루트 페이지와 오더 페이지의 재고 판단 기준 불일치 해결
+- 복잡한 재고 상태 표시로 인한 사용자 혼란 해결
+
+### 💡 배운 점
+
+- **경계값 처리의 중요성**: `<` vs `<=` 하나의 차이로 로직 결과가 달라짐
+- **사용자 중심 설계**: 복잡한 정보보다 간단하고 직관적인 표시가 더 효과적
+- **일관성의 가치**: 같은 기능은 모든 페이지에서 동일한 로직 적용 필요
+- **우선순위 정렬**: 사용자가 중요한 정보를 먼저 볼 수 있도록 자동 정렬의 중요성
+
+### 📋 내일 할 일
+
+- [ ] 다른 manual 페이지들도 거래처 필터링 적용 검토
+- [ ] 재고 우선순위 정렬 사용자 피드백 수집
+- [ ] 간소화된 재고 상태 표시 사용성 테스트
+- [ ] 성능 최적화 검토
+
+---
+
 ## 📅 2024년 12월 22일 (일)
 
 ### 🎯 오늘의 목표
@@ -581,8 +806,8 @@
 
 ## 📊 프로젝트 통계
 
-- **총 작업일**: 4일
-- **완료된 기능**: 15개
-- **리팩토링된 파일**: 28개
-- **해결된 이슈**: 17개
+- **총 작업일**: 5일
+- **완료된 기능**: 19개
+- **리팩토링된 파일**: 30개
+- **해결된 이슈**: 22개
 - **생성된 문서**: 2개 (REMEMBER.md, DATABASE.md)
