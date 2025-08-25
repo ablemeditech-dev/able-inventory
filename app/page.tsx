@@ -600,6 +600,18 @@ export default function HomePage() {
     return diffDays;
   };
 
+  const getUBDStatusColor = (days: number) => {
+    if (days <= 30) return "text-red-600";
+    if (days <= 180) return "text-yellow-600";
+    return "text-green-600";
+  };
+
+  const getUBDStatusBg = (days: number) => {
+    if (days <= 30) return "bg-red-50";
+    if (days <= 180) return "bg-yellow-50";
+    return "bg-white";
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -792,37 +804,29 @@ export default function HomePage() {
             <div className="p-6">
               {shortUbdProducts.length > 0 ? (
                 <div className="space-y-4">
-                  {shortUbdProducts.map((product, index) => {
-                    const isExpired = product.days_until_expiry < 0;
-                    const isExpiringSoon = product.days_until_expiry <= 30 && product.days_until_expiry >= 0;
-                    
-                    return (
-                      <div key={index} className="border-b border-accent-light pb-4 last:border-b-0 last:pb-0">
-                        {/* 첫 번째 줄: CFN, UBD, 남은 일수 */}
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-3">
-                            <span className="font-medium text-primary">{product.cfn}</span>
-                            <span className="text-sm text-text-secondary">{formatDate(product.ubd_date)}</span>
-                          </div>
-                          <span className={`text-sm font-medium ${
-                            isExpired 
-                              ? 'text-status-error-text' 
-                              : isExpiringSoon 
-                              ? 'text-status-warning-text' 
-                              : 'text-status-success-text'
-                          }`}>
-                            {isExpired ? '만료됨' : `${product.days_until_expiry}일 남음`}
-                          </span>
+                  {shortUbdProducts.map((product, index) => (
+                    <div 
+                      key={index} 
+                      className={`border border-accent-light rounded-lg p-3 transition-colors hover:shadow-sm ${getUBDStatusBg(product.days_until_expiry)}`}
+                    >
+                      {/* 첫 번째 줄: CFN, UBD, 남은 일수 */}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-3">
+                          <span className="font-medium text-primary">{product.cfn}</span>
+                          <span className="text-sm text-text-secondary">{formatDate(product.ubd_date)}</span>
                         </div>
-                        
-                        {/* 두 번째 줄: 병원명, 수량 */}
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-text-secondary">{product.location_name}</span>
-                          <span className="text-sm font-medium text-text-primary">{product.quantity}개</span>
-                        </div>
+                        <span className={`text-sm font-semibold ${getUBDStatusColor(product.days_until_expiry)}`}>
+                          {product.days_until_expiry}일 남음
+                        </span>
                       </div>
-                    );
-                  })}
+                      
+                      {/* 두 번째 줄: 병원명, 수량 */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-text-secondary">{product.location_name}</span>
+                        <span className="text-sm font-medium text-text-primary">{product.quantity.toLocaleString()}개</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="text-center py-8 text-text-secondary">

@@ -242,13 +242,13 @@ export default function ShortUBDPage() {
 
   const getUBDStatusColor = (days: number) => {
     if (days <= 30) return "text-red-600";
-    if (days <= 90) return "text-yellow-600";
+    if (days <= 180) return "text-yellow-600";
     return "text-green-600";
   };
 
   const getUBDStatusBg = (days: number) => {
     if (days <= 30) return "bg-red-50";
-    if (days <= 90) return "bg-yellow-50";
+    if (days <= 180) return "bg-yellow-50";
     return "bg-white";
   };
 
